@@ -1,0 +1,19 @@
+NULL =
+
+# Base and default-included sources and headers
+
+WING_BASE_sources = \
+	wingasynchelper.c \
+	wingasynchelper.h \
+	wingnamedpipeclient.c \
+	wingnamedpipeconnection.c \
+	wingnamedpipelistener.c \
+	$(NULL)
+
+WING_BASE_headers = \
+	wing.h \
+	wingversionmacros.h \
+	wingnamedpipeclient.h \
+	wingnamedpipeconnection.h \
+	wingnamedpipelistener.h \
+	$(NULL)
