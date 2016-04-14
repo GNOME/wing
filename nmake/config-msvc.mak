@@ -41,4 +41,4 @@ EXTRA_TARGETS =
 WING_TESTS = \
 	$(CFG)\$(PLAT)\named-pipes.exe
 
-WING_LIB_CFLAGS = $(WING_CFLAGS) /DWING_EXTERN="__declspec (dllexport) extern"
+WING_LIB_CFLAGS = $(WING_CFLAGS) /D_WING_EXTERN="__declspec (dllexport) extern"
