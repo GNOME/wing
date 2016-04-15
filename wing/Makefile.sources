@@ -8,6 +8,9 @@ WING_BASE_sources = \
 	wingnamedpipeclient.c \
 	wingnamedpipeconnection.c \
 	wingnamedpipelistener.c \
+	wingservice.c \
+	wingservice-private.h \
+	wingservicemanager.c \
 	$(NULL)
 
 WING_BASE_headers = \
@@ -16,4 +19,6 @@ WING_BASE_headers = \
 	wingnamedpipeclient.h \
 	wingnamedpipeconnection.h \
 	wingnamedpipelistener.h \
+	wingservice.h \
+	wingservicemanager.h \
 	$(NULL)

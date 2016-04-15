@@ -20,7 +20,7 @@ WING_HEADERS =	\
 	$(WING_BASE_headers)
 
 # Minimal set of (system) libraries needed for the Wing DLL
-WING_DEP_LIBS = user32.lib $(WING_GLIB_LIBS)
+WING_DEP_LIBS = user32.lib Advapi32.lib $(WING_GLIB_LIBS)
 
 # We build the Wing DLL/LIB at least
 WING_LIBS = $(CFG)\$(PLAT)\wing.lib
