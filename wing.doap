@@ -10,7 +10,7 @@
 
   <shortdesc xml:lang="en">Low level core library for Windows</shortdesc>
 
-  <description xml:lang="en">Wing is the low-level core library using GLib to provide high level API for Windows.</description>
+  <description xml:lang="en">Wing is a library which provides GLib-like API to some Windows API.</description>
 
   <homepage rdf:resource="http://www.gtk.org" />
   <license rdf:resource="http://usefulinc.com/doap/licenses/lgpl" />
