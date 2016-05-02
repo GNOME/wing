@@ -11,6 +11,7 @@ WING_BASE_sources = \
 	wingservice.c \
 	wingservice-private.h \
 	wingservicemanager.c \
+	wingutils.c \
 	$(NULL)
 
 WING_BASE_headers = \
@@ -21,4 +22,5 @@ WING_BASE_headers = \
 	wingnamedpipelistener.h \
 	wingservice.h \
 	wingservicemanager.h \
+	wingutils.h \
 	$(NULL)

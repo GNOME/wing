@@ -26,5 +26,6 @@
 #include <wing/wingnamedpipeconnection.h>
 #include <wing/wingservice.h>
 #include <wing/wingservicemanager.h>
+#include <wing/wingutils.h>
 
 #endif /* __WING_H__ */
