@@ -26,6 +26,10 @@ G_BEGIN_DECLS
 WING_AVAILABLE_IN_ALL
 gboolean     wing_is_wow_64            (void);
 
+WING_AVAILABLE_IN_ALL
+gboolean     wing_get_version_number   (gint *major,
+                                        gint *minor);
+
 G_END_DECLS
 
 #endif /* WING_SERVICE_H */

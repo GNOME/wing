@@ -35,3 +35,30 @@ wing_is_wow_64 (void)
 
   return is_wow_64;
 }
+
+gboolean
+wing_get_version_number (gint *major,
+                         gint *minor)
+{
+  typedef NTSTATUS (WINAPI fRtlGetVersion) (PRTL_OSVERSIONINFOEXW);
+  OSVERSIONINFOEXW osverinfo;
+  fRtlGetVersion *RtlGetVersion;
+  HMODULE hmodule;
+
+  hmodule = LoadLibraryW (L"ntdll.dll");
+  g_return_val_if_fail (hmodule != NULL, FALSE);
+
+  RtlGetVersion = (fRtlGetVersion *)GetProcAddress (hmodule, "RtlGetVersion");
+  g_return_val_if_fail (RtlGetVersion != NULL, FALSE);
+
+  memset (&osverinfo, 0, sizeof (OSVERSIONINFOEXW));
+  osverinfo.dwOSVersionInfoSize = sizeof (OSVERSIONINFOEXW);
+  RtlGetVersion (&osverinfo);
+
+  FreeLibrary (hmodule);
+
+  *major = osverinfo.dwMajorVersion;
+  *minor = osverinfo.dwMinorVersion;
+
+  return TRUE;
+}
