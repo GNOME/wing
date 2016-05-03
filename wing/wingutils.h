@@ -15,8 +15,8 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WING_SERVICE_H
-#define WING_SERVICE_H
+#ifndef WING_UTILS_H
+#define WING_UTILS_H
 
 #include <glib.h>
 #include <wing/wingversionmacros.h>
@@ -32,4 +32,4 @@ gboolean     wing_get_version_number   (gint *major,
 
 G_END_DECLS
 
-#endif /* WING_SERVICE_H */
+#endif /* WING_UTILS_H */
