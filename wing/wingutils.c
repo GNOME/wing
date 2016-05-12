@@ -37,6 +37,16 @@ wing_is_wow_64 (void)
 }
 
 gboolean
+wing_is_os_64bit (void)
+{
+#ifdef _WIN64
+  return TRUE;
+#else
+  return wing_is_wow_64 ();
+#endif
+}
+
+gboolean
 wing_get_version_number (gint *major,
                          gint *minor)
 {
