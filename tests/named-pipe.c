@@ -49,14 +49,14 @@ accepted_cb (GObject      *source,
 {
   WingNamedPipeListener *listener = WING_NAMED_PIPE_LISTENER (source);
   WingNamedPipeConnection *conn;
-  gboolean *sucess = user_data;
+  gboolean *success = user_data;
   GError *error = NULL;
 
   conn = wing_named_pipe_listener_accept_finish (listener, result, NULL, &error);
   g_assert_no_error (error);
   g_object_unref (conn);
 
-  *sucess = TRUE;
+  *success = TRUE;
 }
 
 static void
@@ -66,14 +66,14 @@ connected_cb (GObject      *source,
 {
   WingNamedPipeClient *client = WING_NAMED_PIPE_CLIENT (source);
   WingNamedPipeConnection *conn;
-  gboolean *sucess = user_data;
+  gboolean *success = user_data;
   GError *error = NULL;
 
   conn = wing_named_pipe_client_connect_finish (client, result, &error);
   g_assert_no_error (error);
   g_object_unref (conn);
 
-  *sucess = TRUE;
+  *success = TRUE;
 }
 
 static void
