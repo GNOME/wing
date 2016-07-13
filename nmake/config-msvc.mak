@@ -39,6 +39,6 @@ WING_DLL_FILENAME = $(CFG)\$(PLAT)\wing-vs$(VSVER)
 EXTRA_TARGETS =
 
 WING_TESTS = \
-	$(CFG)\$(PLAT)\named-pipes.exe
+	$(CFG)\$(PLAT)\named-pipe.exe
 
 WING_LIB_CFLAGS = $(WING_CFLAGS) /D_WING_EXTERN="__declspec (dllexport) extern"
