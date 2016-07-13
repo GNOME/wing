@@ -255,6 +255,59 @@ test_accept_cancel (void)
   g_object_unref (cancellable);
 }
 
+static void
+test_connect_accept_cancel (void)
+{
+  WingNamedPipeListener *listener;
+  WingNamedPipeClient *client;
+  GCancellable *cancellable;
+  gboolean success_accepted = FALSE;
+  gboolean success_connected = FALSE;
+  GError *error = NULL;
+
+  cancellable = g_cancellable_new ();
+  listener = wing_named_pipe_listener_new ();
+
+  wing_named_pipe_listener_add_named_pipe (listener,
+                                           "\\\\.\\pipe\\gtest-named-pipe-name-connect-then-cancel",
+                                           NULL,
+                                           &error);
+  g_assert_no_error (error);
+
+  wing_named_pipe_listener_accept_async (listener,
+                                         cancellable,
+                                         accepted_cb,
+                                         &success_accepted);
+
+  client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_connect_async (client,
+                                        "\\\\.\\pipe\\gtest-named-pipe-name-connect-then-cancel",
+                                        NULL,
+                                        connected_cb,
+                                        &success_connected);
+
+  do
+    g_main_context_iteration (NULL, TRUE);
+  while (!success_accepted || !success_connected);
+
+  success_accepted = FALSE;
+
+  wing_named_pipe_listener_accept_async (listener,
+                                         cancellable,
+                                         accept_cancelled_cb,
+                                         &success_accepted);
+
+  g_timeout_add_seconds (5, on_cancel_accept, cancellable);
+
+  do
+    g_main_context_iteration (NULL, TRUE);
+  while (!success_accepted);
+
+  g_object_unref (client);
+  g_object_unref (listener);
+  g_object_unref (cancellable);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -269,6 +322,7 @@ main (int   argc,
   g_test_add_func ("/named-pipes/connect-sync", test_connect_sync);
   g_test_add_func ("/named-pipes/connect-sync-fails", test_connect_sync_fails);
   g_test_add_func ("/named-pipes/accept-cancel", test_accept_cancel);
+  g_test_add_func ("/named-pipes/connect-accept-cancel", test_connect_accept_cancel);
 
   return g_test_run ();
 }
