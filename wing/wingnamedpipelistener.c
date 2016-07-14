@@ -28,6 +28,7 @@
 typedef struct
 {
   gchar *pipe_name;
+  gunichar2 *pipe_namew;
   HANDLE handle;
   OVERLAPPED overlapped;
   GObject *source_object;
@@ -46,14 +47,14 @@ static GQuark source_quark = 0;
 
 static PipeData *
 pipe_data_new (const gchar *pipe_name,
-               HANDLE       handle,
                GObject     *source_object)
 {
   PipeData *data;
 
   data = g_slice_new0 (PipeData);
   data->pipe_name = g_strdup (pipe_name);
-  data->handle = handle;
+  data->pipe_namew = g_utf8_to_utf16 (pipe_name, -1, NULL, NULL, NULL);
+  data->handle = INVALID_HANDLE_VALUE;
   data->overlapped.hEvent = CreateEvent (NULL, /* default security attribute */
                                          TRUE, /* manual-reset event */
                                          TRUE, /* initial state = signaled */
@@ -68,6 +69,7 @@ static void
 pipe_data_free (PipeData *data)
 {
   g_free (data->pipe_name);
+  g_free (data->pipe_namew);
   if (data->handle != INVALID_HANDLE_VALUE)
     CloseHandle (data->handle);
   CloseHandle (data->overlapped.hEvent);
@@ -126,6 +128,67 @@ wing_named_pipe_listener_new (void)
   return g_object_new (WING_TYPE_NAMED_PIPE_LISTENER, NULL);
 }
 
+static gboolean
+create_pipe_from_pipe_data (PipeData  *pipe_data,
+                            GError   **error)
+{
+  /* Set event as signaled */
+  SetEvent(pipe_data->overlapped.hEvent);
+
+  pipe_data->handle = CreateNamedPipeW (pipe_data->pipe_namew,
+                                        PIPE_ACCESS_DUPLEX |
+                                        FILE_FLAG_OVERLAPPED,
+                                        PIPE_TYPE_BYTE |
+                                        PIPE_READMODE_BYTE |
+                                        PIPE_WAIT,
+                                        PIPE_UNLIMITED_INSTANCES,
+                                        DEFAULT_PIPE_BUF_SIZE,
+                                        DEFAULT_PIPE_BUF_SIZE,
+                                        0, NULL);
+
+  if (pipe_data->handle == INVALID_HANDLE_VALUE)
+    {
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
+
+      g_set_error (error,
+                   G_IO_ERROR,
+                   g_io_error_from_win32_error (errsv),
+                   "Error creating named pipe '%s': %s",
+                   pipe_data->pipe_name, emsg);
+      g_free (emsg);
+
+      return FALSE;
+    }
+
+  if (!ConnectNamedPipe (pipe_data->handle, &pipe_data->overlapped))
+    {
+      switch (GetLastError ())
+      {
+      case ERROR_IO_PENDING:
+        break;
+      case ERROR_PIPE_CONNECTED:
+        pipe_data->already_connected = TRUE;
+        break;
+      default:
+        {
+          int errsv = GetLastError ();
+          gchar *emsg = g_win32_error_message (errsv);
+
+          g_set_error (error,
+                       G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+                       "Failed to connect named pipe '%s': %s",
+                       pipe_data->pipe_name, emsg);
+          g_free (emsg);
+
+          return FALSE;
+        }
+      }
+    }
+
+  return TRUE;
+}
+
 /**
  * wing_named_pipe_listener_add_named_pipe:
  * @listener: a #WingNamedPipeListener.
@@ -152,70 +215,18 @@ wing_named_pipe_listener_add_named_pipe (WingNamedPipeListener  *listener,
                                          GError                **error)
 {
   WingNamedPipeListenerPrivate *priv;
-  gunichar2 *pipe_namew;
   PipeData *pipe_data;
-  HANDLE handle;
 
   g_return_val_if_fail (WING_IS_NAMED_PIPE_LISTENER (listener), FALSE);
   g_return_val_if_fail (pipe_name != NULL, FALSE);
 
   priv = wing_named_pipe_listener_get_instance_private (listener);
 
-  pipe_namew = g_utf8_to_utf16 (pipe_name, -1, NULL, NULL, NULL);
-
-  handle = CreateNamedPipeW (pipe_namew,
-                             PIPE_ACCESS_DUPLEX |
-                             FILE_FLAG_OVERLAPPED,
-                             PIPE_TYPE_BYTE |
-                             PIPE_READMODE_BYTE |
-                             PIPE_WAIT,
-                             PIPE_UNLIMITED_INSTANCES,
-                             DEFAULT_PIPE_BUF_SIZE,
-                             DEFAULT_PIPE_BUF_SIZE,
-                             0, NULL);
-  g_free (pipe_namew);
-
-  if (handle == INVALID_HANDLE_VALUE)
+  pipe_data = pipe_data_new (pipe_name, source_object);
+  if (!create_pipe_from_pipe_data (pipe_data, error))
     {
-      int errsv = GetLastError ();
-      gchar *emsg = g_win32_error_message (errsv);
-
-      g_set_error (error,
-                   G_IO_ERROR,
-                   g_io_error_from_win32_error (errsv),
-                   "Error creating named pipe '%s': %s",
-                   pipe_name, emsg);
-      g_free (emsg);
-
+      pipe_data_free (pipe_data);
       return FALSE;
-    }
-
-  pipe_data = pipe_data_new (pipe_name, handle, source_object);
-
-  if (!ConnectNamedPipe (handle, &pipe_data->overlapped))
-    {
-      switch (GetLastError ())
-      {
-      case ERROR_IO_PENDING:
-        break;
-      case ERROR_PIPE_CONNECTED:
-        pipe_data->already_connected = TRUE;
-        break;
-      default:
-        {
-          int errsv = GetLastError ();
-          gchar *emsg = g_win32_error_message (errsv);
-
-          g_set_error (error,
-                       G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
-                       "Failed to connect named pipe '%s': %s",
-                       pipe_name, emsg);
-          g_free (emsg);
-          pipe_data_free (pipe_data);
-
-          return FALSE;
-        }
-      }
     }
 
   g_ptr_array_add (priv->named_pipes, pipe_data);
@@ -265,6 +276,7 @@ connect_ready (HANDLE   handle,
   else
     {
       WingNamedPipeConnection *connection;
+      GError *error = NULL;
 
       if (pipe_data->source_object != NULL)
         g_object_set_qdata_full (G_OBJECT (task),
@@ -274,9 +286,17 @@ connect_ready (HANDLE   handle,
 
       connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
                                  "handle", pipe_data->handle,
-                                 "close-handle", FALSE,
+                                 "close-handle", TRUE,
                                  NULL);
-      g_task_return_pointer (task, connection, g_object_unref);
+
+      /* Put another pipe to listen so more clients can already connect */
+      if (!create_pipe_from_pipe_data (pipe_data, &error))
+        {
+          g_object_unref (connection);
+          g_task_return_error (task, error);
+        }
+      else
+        g_task_return_pointer (task, connection, g_object_unref);
     }
 
   g_object_unref (task);
@@ -469,11 +489,18 @@ wing_named_pipe_listener_accept (WingNamedPipeListener  *listener,
     {
       connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
                                  "handle", pipe_data->handle,
-                                 "close-handle", FALSE,
+                                 "close-handle", TRUE,
                                  NULL);
 
       if (source_object)
         *source_object = pipe_data->source_object;
+
+      /* Put another pipe to listen so more clients can already connect */
+      if (!create_pipe_from_pipe_data (pipe_data, error))
+        {
+          g_object_unref (connection);
+          connection = NULL;
+        }
     }
 
   return connection;
