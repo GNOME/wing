@@ -520,6 +520,7 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
                                      "close-handle", FALSE,
                                      NULL);
           g_task_return_pointer (task, connection, g_object_unref);
+          g_object_unref (task);
 
           return;
         }
