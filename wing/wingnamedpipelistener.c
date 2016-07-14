@@ -185,8 +185,8 @@ wing_named_pipe_listener_add_named_pipe (WingNamedPipeListener  *listener,
                    g_io_error_from_win32_error (errsv),
                    "Error creating named pipe '%s': %s",
                    pipe_name, emsg);
-
       g_free (emsg);
+
       return FALSE;
     }
 
