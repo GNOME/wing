@@ -364,6 +364,28 @@ accept_callback (HANDLE   handle,
   return TRUE;
 }
 
+/* Check if any of the named pipes is already connected
+ * and pick the the first one.
+ */
+static PipeData *
+find_first_connected (WingNamedPipeListener *listener)
+{
+  WingNamedPipeListenerPrivate *priv;
+  guint i;
+
+  priv = wing_named_pipe_listener_get_instance_private (listener);
+
+  for (i = 0; i < priv->named_pipes->len; i++)
+    {
+      PipeData *pdata = priv->named_pipes->pdata[i];
+
+      if (pdata->already_connected)
+        return pdata;
+    }
+
+  return NULL;
+}
+
 /**
  * wing_named_pipe_listener_accept:
  * @listener: a #WingNamedPipeListener
@@ -415,18 +437,7 @@ wing_named_pipe_listener_accept (WingNamedPipeListener  *listener,
     }
   else
     {
-      guint i;
-
-      /* First we check if any of the named pipes is already connected and
-       * pick the the first one.
-       */
-      for (i = 0; i < priv->named_pipes->len; i++)
-        {
-          PipeData *pdata = priv->named_pipes->pdata[i];
-
-          if (pdata->already_connected)
-            pipe_data = pdata;
-        }
+      pipe_data = find_first_connected (listener);
 
       if (pipe_data == NULL)
         {
@@ -498,32 +509,27 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
 
   priv = wing_named_pipe_listener_get_instance_private (listener);
 
-  /* First we check if any of the named pipes is already connected and pick the
-   * the first one.
-   */
-  for (i = 0; i < priv->named_pipes->len; i++)
+  pipe_data = find_first_connected (listener);
+
+  if (pipe_data != NULL)
     {
-      pipe_data = priv->named_pipes->pdata[i];
+      WingNamedPipeConnection *connection;
 
-      if (pipe_data->already_connected)
-        {
-          WingNamedPipeConnection *connection;
+      if (pipe_data->source_object)
+        g_object_set_qdata_full (G_OBJECT (task),
+                                 source_quark,
+                                 g_object_ref (pipe_data->source_object),
+                                 g_object_unref);
 
-          if (pipe_data->source_object)
-            g_object_set_qdata_full (G_OBJECT (task),
-                                     source_quark,
-                                     g_object_ref (pipe_data->source_object),
-                                     g_object_unref);
+      connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
+                                 "handle", pipe_data->handle,
+                                 "close-handle", FALSE,
+                                 NULL);
 
-          connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
-                                     "handle", pipe_data->handle,
-                                     "close-handle", FALSE,
-                                     NULL);
-          g_task_return_pointer (task, connection, g_object_unref);
-          g_object_unref (task);
+      g_task_return_pointer (task, connection, g_object_unref);
+      g_object_unref (task);
 
-          return;
-        }
+      return;
     }
 
   sources = add_sources (listener,
