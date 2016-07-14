@@ -68,7 +68,8 @@ static void
 pipe_data_free (PipeData *data)
 {
   g_free (data->pipe_name);
-  CloseHandle (data->handle);
+  if (data->handle != INVALID_HANDLE_VALUE)
+    CloseHandle (data->handle);
   CloseHandle (data->overlapped.hEvent);
   g_clear_object (&data->source_object);
   g_slice_free (PipeData, data);
