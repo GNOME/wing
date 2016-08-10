@@ -322,7 +322,7 @@ test_multi_client_basic (void)
   listener = wing_named_pipe_listener_new ();
 
   wing_named_pipe_listener_add_named_pipe (listener,
-                                           "\\\\.\\pipe\\gtest-named-pipe-name-connect-then-cancel",
+                                           "\\\\.\\pipe\\gtest-named-pipe-name-connect-multi-client",
                                            NULL,
                                            &error);
   g_assert_no_error (error);
@@ -334,7 +334,7 @@ test_multi_client_basic (void)
 
   client = wing_named_pipe_client_new ();
   wing_named_pipe_client_connect_async (client,
-                                        "\\\\.\\pipe\\gtest-named-pipe-name-connect-then-cancel",
+                                        "\\\\.\\pipe\\gtest-named-pipe-name-connect-multi-client",
                                         NULL,
                                         connected_cb,
                                         &success_connected);
@@ -355,7 +355,7 @@ test_multi_client_basic (void)
 
   client = wing_named_pipe_client_new ();
   wing_named_pipe_client_connect_async (client,
-                                        "\\\\.\\pipe\\gtest-named-pipe-name-connect-then-cancel",
+                                        "\\\\.\\pipe\\gtest-named-pipe-name-connect-multi-client",
                                         NULL,
                                         connected_cb,
                                         &success_connected);
