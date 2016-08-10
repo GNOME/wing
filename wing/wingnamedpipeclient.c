@@ -116,6 +116,7 @@ wing_named_pipe_client_class_init (WingNamedPipeClientClass *klass)
                       NMPWAIT_WAIT_FOREVER,
                       NMPWAIT_WAIT_FOREVER,
                       G_PARAM_READWRITE |
+                      G_PARAM_CONSTRUCT |
                       G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class, LAST_PROP, props);
