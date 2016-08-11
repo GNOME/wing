@@ -18,6 +18,7 @@
  */
 
 #include <wing/wing.h>
+#include <windows.h>
 
 static void
 test_add_named_pipe (void)
@@ -369,6 +370,19 @@ test_multi_client_basic (void)
   g_object_unref (cancellable);
 }
 
+static void
+test_client_default_timeout (void)
+{
+  WingNamedPipeClient *client;
+  guint timeout;
+
+  client = wing_named_pipe_client_new ();
+  g_object_get (G_OBJECT (client), "timeout", &timeout, NULL);
+
+  g_assert_cmpuint (timeout, ==, NMPWAIT_WAIT_FOREVER);
+  g_object_unref (client);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -385,6 +399,7 @@ main (int   argc,
   g_test_add_func ("/named-pipes/accept-cancel", test_accept_cancel);
   g_test_add_func ("/named-pipes/connect-accept-cancel", test_connect_accept_cancel);
   g_test_add_func ("/named-pipes/multi-client-basic", test_multi_client_basic);
+  g_test_add_func ("/named-pipes/client-default-timeout", test_client_default_timeout);
 
   return g_test_run ();
 }
