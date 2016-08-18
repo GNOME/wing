@@ -117,6 +117,8 @@ wing_service_manager_install_service (WingServiceManager  *manager,
   wchar_t *path;
   gboolean result = FALSE;
   const gchar *service_name;
+  WingServiceFlags service_flags;
+  DWORD service_type;
 
   g_return_val_if_fail (WING_IS_SERVICE_MANAGER (manager), FALSE);
   g_return_val_if_fail (WING_IS_SERVICE (service), FALSE);
@@ -128,11 +130,16 @@ wing_service_manager_install_service (WingServiceManager  *manager,
 
   path = get_file_path ();
   service_name = wing_service_get_name (service);
+  service_flags = wing_service_get_flags (service);
+  service_type = SERVICE_WIN32_OWN_PROCESS;
+  if (service_flags & WING_SERVICE_IS_INTERACTIVE)
+    service_type |= SERVICE_INTERACTIVE_PROCESS;
+
   service_handle = CreateServiceW (sc,
                                    _wing_service_get_namew (service),
                                    _wing_service_get_namew (service),
                                    SERVICE_ALL_ACCESS,
-                                   SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS,
+                                   service_type,
                                    SERVICE_AUTO_START,
                                    SERVICE_ERROR_NORMAL,
                                    path,

@@ -429,6 +429,18 @@ _wing_service_get_namew (WingService *service)
   return priv->namew;
 }
 
+WingServiceFlags
+wing_service_get_flags (WingService *service)
+{
+  WingServicePrivate *priv;
+
+  g_return_val_if_fail (WING_IS_SERVICE (service), WING_SERVICE_NONE);
+
+  priv = wing_service_get_instance_private (service);
+
+  return priv->flags;
+}
+
 static void
 set_service_status (WingService *service,
                     DWORD        state)

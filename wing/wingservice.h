@@ -51,12 +51,23 @@ struct _WingServiceClass
   gpointer reserved[12];
 };
 
+/**
+ * WingServiceFlags:
+ * @WING_SERVICE_NONE: no flags.
+ * @WING_SERVICE_CAN_BE_SUSPENDED: whether the service can be suspended.
+ * @WING_SERVICE_CAN_BE_STOPPED: whether the service can be stopped.
+ * @WING_SERVICE_STOP_ON_SHUTDOWN: whether to stop the service on shutdown.
+ * @WING_SERVICE_IS_INTERACTIVE: whether service can interact with the desktop.
+ *
+ * The flags for the service.
+ */
 typedef enum
 {
   WING_SERVICE_NONE             = 0,
   WING_SERVICE_CAN_BE_SUSPENDED = 1 << 0,
   WING_SERVICE_CAN_BE_STOPPED   = 1 << 1,
-  WING_SERVICE_STOP_ON_SHUTDOWN = 1 << 2
+  WING_SERVICE_STOP_ON_SHUTDOWN = 1 << 2,
+  WING_SERVICE_IS_INTERACTIVE   = 1 << 3
 } WingServiceFlags;
 
 WING_AVAILABLE_IN_ALL
@@ -75,6 +86,9 @@ void                   wing_service_set_default     (WingService *service);
 
 WING_AVAILABLE_IN_ALL
 const gchar           *wing_service_get_name        (WingService *service);
+
+WING_AVAILABLE_IN_ALL
+WingServiceFlags       wing_service_get_flags       (WingService *service);
 
 WING_AVAILABLE_IN_ALL
 int                    wing_service_run             (WingService  *service,
