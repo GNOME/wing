@@ -54,13 +54,13 @@ open_sc_manager (DWORD    desired_access,
   handle = OpenSCManager (NULL, NULL, desired_access);
   if (handle == NULL)
     {
-      gchar *err;
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
 
-      err = g_win32_error_message (GetLastError());
       g_set_error (error, G_IO_ERROR,
-                   g_io_error_from_win32_error (GetLastError()),
-                   err);
-      g_free (err);
+                   g_io_error_from_win32_error (errsv),
+                   emsg);
+      g_free (emsg);
     }
 
   return handle;
@@ -78,13 +78,13 @@ open_service (SC_HANDLE     sc,
                          desired_access);
   if (handle == NULL)
     {
-      gchar *err;
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
 
-      err = g_win32_error_message (GetLastError ());
       g_set_error (error, G_IO_ERROR,
-                   g_io_error_from_win32_error (GetLastError ()),
-                   err);
-      g_free (err);
+                   g_io_error_from_win32_error (errsv),
+                   emsg);
+      g_free (emsg);
     }
 
   return handle;
@@ -146,13 +146,13 @@ wing_service_manager_install_service (WingServiceManager  *manager,
     }
   else
     {
-      gchar *err;
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
 
-      err = g_win32_error_message (GetLastError ());
       g_set_error (error, G_IO_ERROR,
-                   g_io_error_from_win32_error (GetLastError ()),
-                   err);
-      g_free (err);
+                   g_io_error_from_win32_error (errsv),
+                   emsg);
+      g_free (emsg);
     }
 
   CloseServiceHandle (sc);
@@ -184,13 +184,13 @@ wing_service_manager_uninstall_service (WingServiceManager  *manager,
         result = TRUE;
       else
         {
-          gchar *err;
+          int errsv = GetLastError ();
+          gchar *emsg = g_win32_error_message (errsv);
 
-          err = g_win32_error_message (GetLastError());
           g_set_error (error, G_IO_ERROR,
-                       g_io_error_from_win32_error (GetLastError()),
-                       err);
-          g_free (err);
+                       g_io_error_from_win32_error (errsv),
+                       emsg);
+          g_free (emsg);
         }
 
       CloseServiceHandle (service_handle);
@@ -295,13 +295,13 @@ wing_service_manager_start_service (WingServiceManager  *manager,
         result = TRUE;
       else
         {
-          gchar *err;
+          int errsv = GetLastError ();
+          gchar *emsg = g_win32_error_message (errsv);
 
-          err = g_win32_error_message (GetLastError());
           g_set_error (error, G_IO_ERROR,
-                       g_io_error_from_win32_error (GetLastError()),
-                       err);
-          g_free (err);
+                       g_io_error_from_win32_error (errsv),
+                       emsg);
+          g_free (emsg);
         }
 
       g_strfreev ((gchar **)argvw);
@@ -346,7 +346,7 @@ wing_service_manager_stop_service (WingServiceManager  *manager,
           /* It may take some time to get a response that the service was stopped */
           while (!stopped && i < 10)
             {
-              g_usleep(200);
+              g_usleep (200);
 
               if (!QueryServiceStatus (service_handle, &status))
                 break;
@@ -359,13 +359,13 @@ wing_service_manager_stop_service (WingServiceManager  *manager,
         }
       else
         {
-          gchar *err;
+          int errsv = GetLastError ();
+          gchar *emsg = g_win32_error_message (errsv);
 
-          err = g_win32_error_message (GetLastError ());
           g_set_error (error, G_IO_ERROR,
-                       g_io_error_from_win32_error (GetLastError ()),
-                       err);
-          g_free (err);
+                       g_io_error_from_win32_error (errsv),
+                       emsg);
+          g_free (emsg);
         }
 
       CloseServiceHandle (service_handle);
