@@ -560,6 +560,54 @@ test_read_write_basic (void)
   g_object_unref (listener);
 }
 
+static void
+test_read_write_several_connections (void)
+{
+  WingNamedPipeListener *listener;
+  gint i;
+  GError *error = NULL;
+
+  listener = wing_named_pipe_listener_new ();
+
+  wing_named_pipe_listener_add_named_pipe (listener,
+                                           "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
+                                           NULL,
+                                           &error);
+  g_assert_no_error (error);
+
+  for (i = 0; i < 100; i++)
+    {
+      WingNamedPipeClient *client;
+      WingNamedPipeConnection *conn_server = NULL;
+      WingNamedPipeConnection *conn_client = NULL;
+
+      wing_named_pipe_listener_accept_async (listener,
+                                             NULL,
+                                             accepted_read_write_cb,
+                                             &conn_server);
+
+      client = wing_named_pipe_client_new ();
+      wing_named_pipe_client_connect_async (client,
+                                            "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
+                                            NULL,
+                                            connected_read_write_cb,
+                                            &conn_client);
+
+      do
+        g_main_context_iteration (NULL, TRUE);
+      while (conn_server == NULL || conn_client == NULL);
+
+      write_and_read (G_IO_STREAM (conn_server),
+                      G_IO_STREAM (conn_client));
+
+      g_object_unref (conn_client);
+      g_object_unref (conn_server);
+      g_object_unref (client);
+    }
+
+  g_object_unref (listener);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -578,6 +626,7 @@ main (int   argc,
   g_test_add_func ("/named-pipes/multi-client-basic", test_multi_client_basic);
   g_test_add_func ("/named-pipes/client-default-timeout", test_client_default_timeout);
   g_test_add_func ("/named-pipes/read-write-basic", test_read_write_basic);
+  g_test_add_func ("/named-pipes/read-write-several-connections", test_read_write_several_connections);
 
   return g_test_run ();
 }
