@@ -452,15 +452,79 @@ on_some_text_written (GObject      *source,
 }
 
 static void
+write_and_read (GIOStream *server_stream,
+                GIOStream *client_stream)
+{
+  gint i;
+
+  for (i = 0; i < WRITE_ITERATIONS; i++)
+    {
+      ReadData *data;
+      GInputStream *in;
+      GOutputStream *out;
+      gboolean server_wrote = FALSE;
+      gboolean server_read = FALSE;
+      gboolean client_wrote = FALSE;
+      gboolean client_read = FALSE;
+
+      /* Server */
+      out = g_io_stream_get_output_stream (server_stream);
+      in = g_io_stream_get_input_stream (server_stream);
+
+      g_output_stream_write_async (out,
+                                   some_text,
+                                   strlen (some_text) + 1,
+                                   G_PRIORITY_DEFAULT,
+                                   NULL,
+                                   on_some_text_written,
+                                   &server_wrote);
+
+      data = g_new0 (ReadData, 1);
+      data->read = &server_read;
+      g_input_stream_read_async (in,
+                                 data->data,
+                                 sizeof (data->data),
+                                 G_PRIORITY_DEFAULT,
+                                 NULL,
+                                 on_some_text_read,
+                                 data);
+
+      /* Client */
+      out = g_io_stream_get_output_stream (client_stream);
+      in = g_io_stream_get_input_stream (client_stream);
+
+      g_output_stream_write_async (out,
+                                   some_text,
+                                   strlen (some_text) + 1,
+                                   G_PRIORITY_DEFAULT,
+                                   NULL,
+                                   on_some_text_written,
+                                   &client_wrote);
+
+      data = g_new0 (ReadData, 1);
+      data->read = &client_read;
+      g_input_stream_read_async (in,
+                                 data->data,
+                                 sizeof (data->data),
+                                 G_PRIORITY_DEFAULT,
+                                 NULL,
+                                 on_some_text_read,
+                                 data);
+
+      do
+        g_main_context_iteration (NULL, TRUE);
+      while (!server_wrote || !client_wrote ||
+             !server_read || !client_read);
+    }
+}
+
+static void
 test_read_write_basic (void)
 {
   WingNamedPipeListener *listener;
   WingNamedPipeClient *client;
   WingNamedPipeConnection *conn_server = NULL;
   WingNamedPipeConnection *conn_client = NULL;
-  GInputStream *in;
-  GOutputStream *out;
-  gint i;
   GError *error = NULL;
 
   listener = wing_named_pipe_listener_new ();
@@ -487,63 +551,8 @@ test_read_write_basic (void)
     g_main_context_iteration (NULL, TRUE);
   while (conn_server == NULL || conn_client == NULL);
 
-  for (i = 0; i < WRITE_ITERATIONS; i++)
-    {
-      ReadData *data;
-      gboolean server_wrote = FALSE;
-      gboolean server_read = FALSE;
-      gboolean client_wrote = FALSE;
-      gboolean client_read = FALSE;
-
-      /* Server */
-      out = g_io_stream_get_output_stream (G_IO_STREAM (conn_server));
-      in = g_io_stream_get_input_stream (G_IO_STREAM (conn_server));
-
-      g_output_stream_write_async (out,
-                                   some_text,
-                                   strlen (some_text) + 1,
-                                   G_PRIORITY_DEFAULT,
-                                   NULL,
-                                   on_some_text_written,
-                                   &server_wrote);
-
-      data = g_new0 (ReadData, 1);
-      data->read = &server_read;
-      g_input_stream_read_async (in,
-                                 data->data,
-                                 sizeof (data->data),
-                                 G_PRIORITY_DEFAULT,
-                                 NULL,
-                                 on_some_text_read,
-                                 data);
-
-      /* Client */
-      out = g_io_stream_get_output_stream (G_IO_STREAM (conn_client));
-      in = g_io_stream_get_input_stream (G_IO_STREAM (conn_client));
-
-      g_output_stream_write_async (out,
-                                   some_text,
-                                   strlen (some_text) + 1,
-                                   G_PRIORITY_DEFAULT,
-                                   NULL,
-                                   on_some_text_written,
-                                   &client_wrote);
-
-      data = g_new0 (ReadData, 1);
-      data->read = &client_read;
-      g_input_stream_read_async (in,
-                                 data->data,
-                                 sizeof (data->data),
-                                 G_PRIORITY_DEFAULT,
-                                 NULL,
-                                 on_some_text_read,
-                                 data);
-
-      do
-        g_main_context_iteration (NULL, TRUE);
-      while (!server_wrote || !client_wrote ||
-             !server_read || !client_read);
-    }
+  write_and_read (G_IO_STREAM (conn_server),
+                  G_IO_STREAM (conn_client));
 
   g_object_unref (conn_client);
   g_object_unref (conn_server);
