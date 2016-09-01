@@ -415,7 +415,7 @@ typedef struct
   gboolean *read;
 } ReadData;
 
-#define WRITE_ITERATIONS 100
+#define MAX_ITERATIONS 100
 static const gchar *some_text = "This is some data to read and to write";
 
 static void
@@ -457,7 +457,7 @@ write_and_read (GIOStream *server_stream,
 {
   gint i;
 
-  for (i = 0; i < WRITE_ITERATIONS; i++)
+  for (i = 0; i < MAX_ITERATIONS; i++)
     {
       ReadData *data;
       GInputStream *in;
@@ -575,7 +575,7 @@ test_read_write_several_connections (void)
                                            &error);
   g_assert_no_error (error);
 
-  for (i = 0; i < 100; i++)
+  for (i = 0; i < MAX_ITERATIONS; i++)
     {
       WingNamedPipeClient *client;
       WingNamedPipeConnection *conn_server = NULL;
@@ -608,6 +608,69 @@ test_read_write_several_connections (void)
   g_object_unref (listener);
 }
 
+static void
+test_read_write_same_time_several_connections (void)
+{
+  WingNamedPipeListener *listener;
+  GPtrArray *client_conns;
+  GPtrArray *server_conns;
+  gint i;
+  GError *error = NULL;
+
+  listener = wing_named_pipe_listener_new ();
+
+  wing_named_pipe_listener_add_named_pipe (listener,
+                                           "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
+                                           NULL,
+                                           &error);
+  g_assert_no_error (error);
+
+  client_conns = g_ptr_array_new_with_free_func (g_object_unref);
+  server_conns = g_ptr_array_new_with_free_func (g_object_unref);
+
+  for (i = 0; i < MAX_ITERATIONS; i++)
+    {
+      WingNamedPipeClient *client;
+      WingNamedPipeConnection *conn_server = NULL;
+      WingNamedPipeConnection *conn_client = NULL;
+
+      wing_named_pipe_listener_accept_async (listener,
+                                             NULL,
+                                             accepted_read_write_cb,
+                                             &conn_server);
+
+      client = wing_named_pipe_client_new ();
+      wing_named_pipe_client_connect_async (client,
+                                            "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
+                                            NULL,
+                                            connected_read_write_cb,
+                                            &conn_client);
+
+      do
+        g_main_context_iteration (NULL, TRUE);
+      while (conn_server == NULL || conn_client == NULL);
+
+      g_ptr_array_add (client_conns, conn_client);
+      g_ptr_array_add (server_conns, conn_server);
+
+      g_object_unref (client);
+    }
+
+  for (i = 0; i < MAX_ITERATIONS; i++)
+    {
+      WingNamedPipeConnection *conn_server = client_conns->pdata[i];
+      WingNamedPipeConnection *conn_client = server_conns->pdata[i];
+
+      write_and_read (G_IO_STREAM (conn_server),
+                      G_IO_STREAM (conn_client));
+    }
+
+  g_ptr_array_unref (client_conns);
+  g_ptr_array_unref (server_conns);
+
+  g_object_unref (listener);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -627,6 +690,7 @@ main (int   argc,
   g_test_add_func ("/named-pipes/client-default-timeout", test_client_default_timeout);
   g_test_add_func ("/named-pipes/read-write-basic", test_read_write_basic);
   g_test_add_func ("/named-pipes/read-write-several-connections", test_read_write_several_connections);
+  g_test_add_func ("/named-pipes/read-write-same-time-several-connections", test_read_write_same_time_several_connections);
 
   return g_test_run ();
 }
