@@ -383,6 +383,174 @@ test_client_default_timeout (void)
   g_object_unref (client);
 }
 
+static void
+accepted_read_write_cb (GObject      *source,
+                        GAsyncResult *result,
+                        gpointer      user_data)
+{
+  WingNamedPipeListener *listener = WING_NAMED_PIPE_LISTENER (source);
+  WingNamedPipeConnection **conn = user_data;
+  GError *error = NULL;
+
+  *conn = wing_named_pipe_listener_accept_finish (listener, result, NULL, &error);
+  g_assert_no_error (error);
+}
+
+static void
+connected_read_write_cb (GObject      *source,
+                         GAsyncResult *result,
+                         gpointer      user_data)
+{
+  WingNamedPipeClient *client = WING_NAMED_PIPE_CLIENT (source);
+  WingNamedPipeConnection **conn = user_data;
+  GError *error = NULL;
+
+  *conn = wing_named_pipe_client_connect_finish (client, result, &error);
+  g_assert_no_error (error);
+}
+
+typedef struct
+{
+  gchar data[256];
+  gboolean *read;
+} ReadData;
+
+#define WRITE_ITERATIONS 100
+static const gchar *some_text = "This is some data to read and to write";
+
+static void
+on_some_text_read (GObject      *source,
+                   GAsyncResult *result,
+                   gpointer      user_data)
+{
+  ReadData *data = user_data;
+  gssize read;
+  GError *error = NULL;
+
+  read = g_input_stream_read_finish (G_INPUT_STREAM (source), result, &error);
+  g_assert_no_error (error);
+  g_assert_cmpint (read, ==, strlen (some_text) + 1);
+
+  *data->read = TRUE;
+  g_free (data);
+}
+
+static void
+on_some_text_written (GObject      *source,
+                      GAsyncResult *result,
+                      gpointer      user_data)
+{
+  gboolean *wrote = user_data;
+  gssize read;
+  GError *error = NULL;
+
+  read = g_output_stream_write_finish (G_OUTPUT_STREAM (source), result, &error);
+  g_assert_no_error (error);
+  g_assert_cmpint (read, ==, strlen (some_text) + 1);
+
+  *wrote = TRUE;
+}
+
+static void
+test_read_write_basic (void)
+{
+  WingNamedPipeListener *listener;
+  WingNamedPipeClient *client;
+  WingNamedPipeConnection *conn_server = NULL;
+  WingNamedPipeConnection *conn_client = NULL;
+  GInputStream *in;
+  GOutputStream *out;
+  gint i;
+  GError *error = NULL;
+
+  listener = wing_named_pipe_listener_new ();
+
+  wing_named_pipe_listener_add_named_pipe (listener,
+                                           "\\\\.\\pipe\\gtest-named-pipe-name",
+                                           NULL,
+                                           &error);
+  g_assert_no_error (error);
+
+  wing_named_pipe_listener_accept_async (listener,
+                                         NULL,
+                                         accepted_read_write_cb,
+                                         &conn_server);
+
+  client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_connect_async (client,
+                                        "\\\\.\\pipe\\gtest-named-pipe-name",
+                                        NULL,
+                                        connected_read_write_cb,
+                                        &conn_client);
+
+  do
+    g_main_context_iteration (NULL, TRUE);
+  while (conn_server == NULL || conn_client == NULL);
+
+  for (i = 0; i < WRITE_ITERATIONS; i++)
+    {
+      ReadData *data;
+      gboolean server_wrote = FALSE;
+      gboolean server_read = FALSE;
+      gboolean client_wrote = FALSE;
+      gboolean client_read = FALSE;
+
+      /* Server */
+      out = g_io_stream_get_output_stream (G_IO_STREAM (conn_server));
+      in = g_io_stream_get_input_stream (G_IO_STREAM (conn_server));
+
+      g_output_stream_write_async (out,
+                                   some_text,
+                                   strlen (some_text) + 1,
+                                   G_PRIORITY_DEFAULT,
+                                   NULL,
+                                   on_some_text_written,
+                                   &server_wrote);
+
+      data = g_new0 (ReadData, 1);
+      data->read = &server_read;
+      g_input_stream_read_async (in,
+                                 data->data,
+                                 sizeof (data->data),
+                                 G_PRIORITY_DEFAULT,
+                                 NULL,
+                                 on_some_text_read,
+                                 data);
+
+      /* Client */
+      out = g_io_stream_get_output_stream (G_IO_STREAM (conn_client));
+      in = g_io_stream_get_input_stream (G_IO_STREAM (conn_client));
+
+      g_output_stream_write_async (out,
+                                   some_text,
+                                   strlen (some_text) + 1,
+                                   G_PRIORITY_DEFAULT,
+                                   NULL,
+                                   on_some_text_written,
+                                   &client_wrote);
+
+      data = g_new0 (ReadData, 1);
+      data->read = &client_read;
+      g_input_stream_read_async (in,
+                                 data->data,
+                                 sizeof (data->data),
+                                 G_PRIORITY_DEFAULT,
+                                 NULL,
+                                 on_some_text_read,
+                                 data);
+
+      do
+        g_main_context_iteration (NULL, TRUE);
+      while (!server_wrote || !client_wrote ||
+             !server_read || !client_read);
+    }
+
+  g_object_unref (conn_client);
+  g_object_unref (conn_server);
+  g_object_unref (client);
+  g_object_unref (listener);
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -400,6 +568,7 @@ main (int   argc,
   g_test_add_func ("/named-pipes/connect-accept-cancel", test_connect_accept_cancel);
   g_test_add_func ("/named-pipes/multi-client-basic", test_multi_client_basic);
   g_test_add_func ("/named-pipes/client-default-timeout", test_client_default_timeout);
+  g_test_add_func ("/named-pipes/read-write-basic", test_read_write_basic);
 
   return g_test_run ();
 }
