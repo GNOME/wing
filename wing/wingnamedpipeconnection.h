@@ -34,6 +34,9 @@ typedef struct _WingNamedPipeConnection WingNamedPipeConnection;
 WING_AVAILABLE_IN_ALL
 GType                         wing_named_pipe_connection_get_type         (void) G_GNUC_CONST;
 
+WING_AVAILABLE_IN_ALL
+const gchar                  *wing_named_pipe_connection_get_pipe_name    (WingNamedPipeConnection *connection);
+
 G_END_DECLS
 
 #endif /* __WING_NAMED_PIPE_CONNECTION_H__ */

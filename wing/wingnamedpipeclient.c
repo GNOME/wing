@@ -196,6 +196,7 @@ wing_named_pipe_client_connect (WingNamedPipeClient  *client,
           goto end;
 
       connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
+                                 "pipe-name", pipe_name,
                                  "handle", handle,
                                  "close-handle", TRUE,
                                  NULL);

@@ -285,6 +285,7 @@ connect_ready (HANDLE   handle,
                                  g_object_unref);
 
       connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
+                                 "pipe-name", pipe_data->pipe_name,
                                  "handle", pipe_data->handle,
                                  "close-handle", TRUE,
                                  NULL);
@@ -488,6 +489,7 @@ wing_named_pipe_listener_accept (WingNamedPipeListener  *listener,
   if (pipe_data != NULL)
     {
       connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
+                                 "pipe-name", pipe_data->pipe_name,
                                  "handle", pipe_data->handle,
                                  "close-handle", TRUE,
                                  NULL);
@@ -550,6 +552,7 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
                                  g_object_unref);
 
       connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
+                                 "pipe-name", pipe_data->pipe_name,
                                  "handle", pipe_data->handle,
                                  "close-handle", FALSE,
                                  NULL);

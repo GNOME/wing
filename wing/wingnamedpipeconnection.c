@@ -48,6 +48,7 @@ struct _WingNamedPipeConnection
 {
   GIOStream parent;
 
+  gchar *pipe_name;
   void *handle;
   gboolean close_handle;
 
@@ -65,6 +66,7 @@ typedef struct _WingNamedPipeConnectionClass WingNamedPipeConnectionClass;
 enum
 {
   PROP_0,
+  PROP_PIPE_NAME,
   PROP_HANDLE,
   PROP_CLOSE_HANDLE
 };
@@ -75,6 +77,8 @@ static void
 wing_named_pipe_connection_finalize (GObject *object)
 {
   WingNamedPipeConnection *connection = WING_NAMED_PIPE_CONNECTION (object);
+
+  g_free (connection->pipe_name);
 
   if (connection->input_stream)
     g_object_unref (connection->input_stream);
@@ -98,6 +102,10 @@ wing_named_pipe_connection_set_property (GObject      *object,
 
   switch (prop_id)
     {
+    case PROP_PIPE_NAME:
+      connection->pipe_name = g_value_dup_string (value);
+      break;
+
     case PROP_HANDLE:
       connection->handle = g_value_get_pointer (value);
       if (connection->handle != NULL && connection->handle != INVALID_HANDLE_VALUE)
@@ -127,6 +135,10 @@ wing_named_pipe_connection_get_property (GObject    *object,
 
   switch (prop_id)
     {
+    case PROP_PIPE_NAME:
+      g_value_set_string (value, connection->pipe_name);
+      break;
+
     case PROP_HANDLE:
       g_value_set_pointer (value, connection->handle);
       break;
@@ -171,6 +183,22 @@ wing_named_pipe_connection_class_init (WingNamedPipeConnectionClass *class)
   io_class->get_output_stream = wing_named_pipe_connection_get_output_stream;
 
   /**
+   * WingNamedPipeConnection:pipe-name:
+   *
+   * The name of the pipe.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+                                   PROP_PIPE_NAME,
+                                   g_param_spec_string ("pipe-name",
+                                                        "Pipe name",
+                                                        "The pipe name",
+                                                        NULL,
+                                                        G_PARAM_READWRITE |
+                                                        G_PARAM_CONSTRUCT_ONLY |
+                                                        G_PARAM_STATIC_STRINGS));
+
+  /**
    * WingNamedPipeConnection:handle:
    *
    * The handle for the connection.
@@ -208,4 +236,12 @@ wing_named_pipe_connection_class_init (WingNamedPipeConnectionClass *class)
 static void
 wing_named_pipe_connection_init (WingNamedPipeConnection *stream)
 {
+}
+
+const gchar *
+wing_named_pipe_connection_get_pipe_name (WingNamedPipeConnection *connection)
+{
+  g_return_val_if_fail (WING_IS_NAMED_PIPE_CONNECTION (connection), NULL);
+
+  return connection->pipe_name;
 }

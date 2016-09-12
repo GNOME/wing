@@ -174,6 +174,7 @@ test_connect_sync (void)
                                                &error);
 
   g_assert_no_error (error);
+  g_assert_cmpstr ("\\\\.\\pipe\\gtest-connect-sync", ==, wing_named_pipe_connection_get_pipe_name (connection));
 
   g_object_unref (client);
   g_object_unref (listener);
