@@ -186,10 +186,10 @@ wing_named_pipe_client_connect (WingNamedPipeClient  *client,
     {
       handle = CreateFileW (pipe_namew,
                             GENERIC_READ | GENERIC_WRITE,
-                            0,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE,
                             NULL,
                             OPEN_EXISTING,
-                            0,
+                            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
                             NULL);
 
       if (g_cancellable_set_error_if_cancelled (cancellable, error))
