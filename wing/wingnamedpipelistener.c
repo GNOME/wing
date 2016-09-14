@@ -544,6 +544,7 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
   if (pipe_data != NULL)
     {
       WingNamedPipeConnection *connection;
+      GError *error = NULL;
 
       if (pipe_data->source_object)
         g_object_set_qdata_full (G_OBJECT (task),
@@ -554,10 +555,17 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
       connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
                                  "pipe-name", pipe_data->pipe_name,
                                  "handle", pipe_data->handle,
-                                 "close-handle", FALSE,
+                                 "close-handle", TRUE,
                                  NULL);
 
-      g_task_return_pointer (task, connection, g_object_unref);
+      if (!create_pipe_from_pipe_data (pipe_data, &error))
+        {
+          g_object_unref (connection);
+          g_task_return_error (task, error);
+        }
+      else
+        g_task_return_pointer (task, connection, g_object_unref);
+
       g_object_unref (task);
 
       return;
