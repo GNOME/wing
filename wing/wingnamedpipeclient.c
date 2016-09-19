@@ -182,8 +182,11 @@ wing_named_pipe_client_connect (WingNamedPipeClient  *client,
 
   pipe_namew = g_utf8_to_utf16 (pipe_name, -1, NULL, NULL, NULL);
 
-  if (WaitNamedPipeW (pipe_namew, priv->timeout))
+  while (TRUE)
     {
+      if (g_cancellable_set_error_if_cancelled (cancellable, error))
+        break;
+
       handle = CreateFileW (pipe_namew,
                             GENERIC_READ | GENERIC_WRITE,
                             FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -192,44 +195,48 @@ wing_named_pipe_client_connect (WingNamedPipeClient  *client,
                             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
                             NULL);
 
-      if (handle == INVALID_HANDLE_VALUE)
+      if (handle != INVALID_HANDLE_VALUE)
+        break;
+
+      if (GetLastError () != ERROR_PIPE_BUSY)
         {
           int errsv;
           gchar *err;
 
           errsv = GetLastError ();
           err = g_win32_error_message (errsv);
-          g_set_error_literal (error, G_IO_ERROR,
-                               g_io_error_from_win32_error (errsv),
-                               err);
+          g_set_error (error, G_IO_ERROR,
+                       g_io_error_from_win32_error (errsv),
+                       "Could not create file for named pipe '%s': %s",
+                       pipe_name, err);
           g_free (err);
-          goto end;
+          break;
         }
 
-      if (g_cancellable_set_error_if_cancelled (cancellable, error))
-          goto end;
+      if (!WaitNamedPipeW (pipe_namew, priv->timeout))
+        {
+          int errsv;
+          gchar *err;
 
-      connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
-                                 "pipe-name", pipe_name,
-                                 "handle", handle,
-                                 "close-handle", TRUE,
-                                 NULL);
-    }
-  else
-    {
-      int errsv;
-      gchar *err;
-
-      errsv = GetLastError ();
-      err = g_win32_error_message (errsv);
-      g_set_error_literal (error, G_IO_ERROR,
-                           g_io_error_from_win32_error (errsv),
-                           err);
-      g_free (err);
+          errsv = GetLastError ();
+          err = g_win32_error_message (errsv);
+          g_set_error (error, G_IO_ERROR,
+                       g_io_error_from_win32_error (errsv),
+                       "Failed to wait for named pipe '%s': %s",
+                       pipe_name, err);
+          g_free (err);
+          break;
+        }
     }
 
-end:
   g_free (pipe_namew);
+
+  if (handle != INVALID_HANDLE_VALUE)
+    connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
+                               "pipe-name", pipe_name,
+                               "handle", handle,
+                               "close-handle", TRUE,
+                               NULL);
 
   return connection;
 }
