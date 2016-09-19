@@ -192,6 +192,20 @@ wing_named_pipe_client_connect (WingNamedPipeClient  *client,
                             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
                             NULL);
 
+      if (handle == INVALID_HANDLE_VALUE)
+        {
+          int errsv;
+          gchar *err;
+
+          errsv = GetLastError ();
+          err = g_win32_error_message (errsv);
+          g_set_error_literal (error, G_IO_ERROR,
+                               g_io_error_from_win32_error (errsv),
+                               err);
+          g_free (err);
+          goto end;
+        }
+
       if (g_cancellable_set_error_if_cancelled (cancellable, error))
           goto end;
 
