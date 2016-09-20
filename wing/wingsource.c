@@ -16,49 +16,49 @@
  */
 
 
-#include "wingasynchelper.h"
+#include "wingsource.h"
 
 
 typedef struct {
   GSource source;
   GPollFD pollfd;
-} WingHandleSource;
+} WingSource;
 
 static gboolean
-wing_handle_source_prepare (GSource *source,
-                            gint    *timeout)
+wing_source_prepare (GSource *source,
+                     gint    *timeout)
 {
   *timeout = -1;
   return FALSE;
 }
 
 static gboolean
-wing_handle_source_check (GSource *source)
+wing_source_check (GSource *source)
 {
-  WingHandleSource *hsource = (WingHandleSource *)source;
+  WingSource *hsource = (WingSource *)source;
 
   return hsource->pollfd.revents;
 }
 
 static gboolean
-wing_handle_source_dispatch (GSource     *source,
-                             GSourceFunc  callback,
-                             gpointer     user_data)
+wing_source_dispatch (GSource     *source,
+                      GSourceFunc  callback,
+                      gpointer     user_data)
 {
-  WingHandleSourceFunc func = (WingHandleSourceFunc)callback;
-  WingHandleSource *hsource = (WingHandleSource *)source;
+  WingSourceFunc func = (WingSourceFunc)callback;
+  WingSource *hsource = (WingSource *)source;
 
   return func (hsource->pollfd.fd, user_data);
 }
 
 static void
-wing_handle_source_finalize (GSource *source)
+wing_source_finalize (GSource *source)
 {
 }
 
 static gboolean
-wing_handle_source_closure_callback (HANDLE   handle,
-                                     gpointer data)
+wing_source_closure_callback (HANDLE   handle,
+                              gpointer data)
 {
   GClosure *closure = data;
 
@@ -80,24 +80,44 @@ wing_handle_source_closure_callback (HANDLE   handle,
   return result;
 }
 
-GSourceFuncs wing_handle_source_funcs = {
-  wing_handle_source_prepare,
-  wing_handle_source_check,
-  wing_handle_source_dispatch,
-  wing_handle_source_finalize,
-  (GSourceFunc)wing_handle_source_closure_callback,
+GSourceFuncs wing_source_funcs = {
+  wing_source_prepare,
+  wing_source_check,
+  wing_source_dispatch,
+  wing_source_finalize,
+  (GSourceFunc)wing_source_closure_callback,
 };
 
+/**
+ * wing_create_source:
+ * @handle: a windows HANDLE
+ * @condition: a #GIOCondition mask to monitor
+ * @cancellable: (allow-none): a %GCancellable or %NULL
+ *
+ * Creates a #GSource that can be attached to a %GMainContext to monitor
+ * for the availability of the specified @condition on the handle.
+ *
+ * The callback on the source is of the #WingSourceFunc type.
+ *
+ * @cancellable if not %NULL can be used to cancel the source, which will
+ * cause the source to trigger, reporting the current condition (which
+ * is likely 0 unless cancellation happened at the same time as a
+ * condition change). You can check for this in the callback using
+ * g_cancellable_is_cancelled().
+ *
+ * Returns: (transfer full): a newly allocated %GSource, free with g_source_unref().
+ */
 GSource *
-_wing_handle_create_source (HANDLE        handle,
-                            GCancellable *cancellable)
+wing_create_source (HANDLE        handle,
+                    GIOCondition  condition,
+                    GCancellable *cancellable)
 {
-  WingHandleSource *hsource;
+  WingSource *hsource;
   GSource *source;
 
-  source = g_source_new (&wing_handle_source_funcs, sizeof (WingHandleSource));
-  hsource = (WingHandleSource *)source;
-  g_source_set_name (source, "WingHandle");
+  source = g_source_new (&wing_source_funcs, sizeof (WingSource));
+  hsource = (WingSource *)source;
+  g_source_set_name (source, "WingSource");
 
   if (cancellable)
     {
@@ -110,7 +130,7 @@ _wing_handle_create_source (HANDLE        handle,
     }
 
   hsource->pollfd.fd = (gint)handle;
-  hsource->pollfd.events = G_IO_IN;
+  hsource->pollfd.events = condition;
   hsource->pollfd.revents = 0;
   g_source_add_poll (source, &hsource->pollfd);
 

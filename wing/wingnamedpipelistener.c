@@ -19,7 +19,7 @@
 
 #include "wingnamedpipelistener.h"
 #include "wingnamedpipeconnection.h"
-#include "wingasynchelper.h"
+#include "wingsource.h"
 
 #include <windows.h>
 
@@ -307,7 +307,7 @@ connect_ready (HANDLE   handle,
 
 static GList *
 add_sources (WingNamedPipeListener *listener,
-             WingHandleSourceFunc   callback,
+             WingSourceFunc         callback,
              gpointer               callback_data,
              GCancellable          *cancellable,
              GMainContext          *context)
@@ -325,8 +325,9 @@ add_sources (WingNamedPipeListener *listener,
     {
       data = priv->named_pipes->pdata[i];
 
-      source = _wing_handle_create_source (data->overlapped.hEvent,
-                                           cancellable);
+      source = wing_create_source (data->overlapped.hEvent,
+                                   G_IO_IN,
+                                   cancellable);
       g_source_set_callback (source,
                              (GSourceFunc) callback,
                              callback_data, NULL);

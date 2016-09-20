@@ -15,21 +15,24 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __WING_ASYNC_HELPER_H__
-#define __WING_ASYNC_HELPER_H__
+#ifndef __WING_SOURCE_H__
+#define __WING_SOURCE_H__
 
 #include <gio/gio.h>
 
 #include <windows.h>
+#include <wing/wingversionmacros.h>
 
 G_BEGIN_DECLS
 
-typedef gboolean (* WingHandleSourceFunc) (HANDLE   handle,
-                                           gpointer user_data);
+typedef gboolean (* WingSourceFunc) (HANDLE        handle,
+                                     gpointer      user_data);
 
-GSource *_wing_handle_create_source (HANDLE        handle,
-                                     GCancellable *cancellable);
+WING_AVAILABLE_IN_ALL
+GSource *wing_create_source (HANDLE        handle,
+                             GIOCondition  condition,
+                             GCancellable *cancellable);
 
 G_END_DECLS
 
-#endif /* __WING_ASYNC_HELPER_H__ */
+#endif /* __WING_SOURCE_H__ */
