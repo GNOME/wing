@@ -31,11 +31,13 @@ test_add_named_pipe (void)
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-good-named-pipe-name",
                                            NULL,
+                                           NULL,
                                            &error);
   g_assert_no_error (error);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\gtest-bad-named-pipe-name",
+                                           NULL,
                                            NULL,
                                            &error);
   g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
@@ -91,6 +93,7 @@ test_connect_basic (void)
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name",
                                            NULL,
+                                           NULL,
                                            &error);
   g_assert_no_error (error);
 
@@ -128,6 +131,7 @@ test_connect_before_accept (void)
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name",
                                            NULL,
+                                           NULL,
                                            &error);
   g_assert_no_error (error);
 
@@ -163,6 +167,7 @@ test_connect_sync (void)
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-connect-sync",
+                                           NULL,
                                            NULL,
                                            &error);
   g_assert_no_error (error);
@@ -239,6 +244,7 @@ test_accept_cancel (void)
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name-cancel",
                                            NULL,
+                                           NULL,
                                            &error);
   g_assert_no_error (error);
 
@@ -272,6 +278,7 @@ test_connect_accept_cancel (void)
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name-connect-then-cancel",
+                                           NULL,
                                            NULL,
                                            &error);
   g_assert_no_error (error);
@@ -325,6 +332,7 @@ test_multi_client_basic (void)
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name-connect-multi-client",
+                                           NULL,
                                            NULL,
                                            &error);
   g_assert_no_error (error);
@@ -533,6 +541,7 @@ test_read_write_basic (void)
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name",
                                            NULL,
+                                           NULL,
                                            &error);
   g_assert_no_error (error);
 
@@ -572,6 +581,7 @@ test_read_write_several_connections (void)
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
+                                           NULL,
                                            NULL,
                                            &error);
   g_assert_no_error (error);
@@ -622,6 +632,7 @@ test_read_write_same_time_several_connections (void)
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
+                                           NULL,
                                            NULL,
                                            &error);
   g_assert_no_error (error);

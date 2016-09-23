@@ -22,6 +22,7 @@
 #include "wingsource.h"
 
 #include <windows.h>
+#include <sddl.h>
 
 #define DEFAULT_PIPE_BUF_SIZE 4096
 
@@ -29,6 +30,8 @@ typedef struct
 {
   gchar *pipe_name;
   gunichar2 *pipe_namew;
+  gchar *security_descriptor;
+  gunichar2 *security_descriptorw;
   HANDLE handle;
   OVERLAPPED overlapped;
   GObject *source_object;
@@ -47,6 +50,7 @@ static GQuark source_quark = 0;
 
 static PipeData *
 pipe_data_new (const gchar *pipe_name,
+               const gchar *security_descriptor,
                GObject     *source_object)
 {
   PipeData *data;
@@ -54,6 +58,8 @@ pipe_data_new (const gchar *pipe_name,
   data = g_slice_new0 (PipeData);
   data->pipe_name = g_strdup (pipe_name);
   data->pipe_namew = g_utf8_to_utf16 (pipe_name, -1, NULL, NULL, NULL);
+  data->security_descriptor = g_strdup (security_descriptor);
+  data->security_descriptorw = g_utf8_to_utf16 (security_descriptor, -1, NULL, NULL, NULL);
   data->handle = INVALID_HANDLE_VALUE;
   data->overlapped.hEvent = CreateEvent (NULL, /* default security attribute */
                                          TRUE, /* manual-reset event */
@@ -70,6 +76,8 @@ pipe_data_free (PipeData *data)
 {
   g_free (data->pipe_name);
   g_free (data->pipe_namew);
+  g_free (data->security_descriptor);
+  g_free (data->security_descriptorw);
   if (data->handle != INVALID_HANDLE_VALUE)
     CloseHandle (data->handle);
   CloseHandle (data->overlapped.hEvent);
@@ -132,6 +140,31 @@ static gboolean
 create_pipe_from_pipe_data (PipeData  *pipe_data,
                             GError   **error)
 {
+  SECURITY_ATTRIBUTES sa = { 0, };
+
+  if (pipe_data->security_descriptorw != NULL)
+    {
+      sa.nLength = sizeof (sa);
+
+      if (!ConvertStringSecurityDescriptorToSecurityDescriptorW (pipe_data->security_descriptorw,
+                                                                 SDDL_REVISION_1,
+                                                                 &sa.lpSecurityDescriptor,
+                                                                 NULL))
+        {
+          int errsv = GetLastError ();
+          gchar *emsg = g_win32_error_message (errsv);
+
+          g_set_error (error,
+                       G_IO_ERROR,
+                       g_io_error_from_win32_error (errsv),
+                       "Could not convert the security descriptor '%s': %s",
+                       pipe_data->security_descriptor, emsg);
+          g_free (emsg);
+
+          return FALSE;
+        }
+    }
+
   /* Set event as signaled */
   SetEvent(pipe_data->overlapped.hEvent);
 
@@ -144,7 +177,11 @@ create_pipe_from_pipe_data (PipeData  *pipe_data,
                                         PIPE_UNLIMITED_INSTANCES,
                                         DEFAULT_PIPE_BUF_SIZE,
                                         DEFAULT_PIPE_BUF_SIZE,
-                                        0, NULL);
+                                        0,
+                                        pipe_data->security_descriptorw != NULL ? &sa : NULL);
+
+  if (sa.lpSecurityDescriptor != NULL)
+    LocalFree (sa.lpSecurityDescriptor);
 
   if (pipe_data->handle == INVALID_HANDLE_VALUE)
     {
@@ -193,11 +230,16 @@ create_pipe_from_pipe_data (PipeData  *pipe_data,
  * wing_named_pipe_listener_add_named_pipe:
  * @listener: a #WingNamedPipeListener.
  * @pipe_name: a name for the pipe.
+ * @security_descriptor: (allow-none): a security descriptor or %NULL.
  * @source_object: (allow-none): Optional #GObject identifying this source
  * @error: #GError for error reporting, or %NULL to ignore.
  *
  * Adds @named_pipe to the set of named pipes that we try to accept clients
  * from.
+ *
+ * @security_descriptor must be of the format specified by Microsoft:
+ * https://msdn.microsoft.com/en-us/library/windows/desktop/aa379570(v=vs.85).aspx
+ * or set to %NULL to not set any security descriptor to the pipe.
  *
  * @source_object will be passed out in the various calls
  * to accept to identify this particular source, which is
@@ -211,6 +253,7 @@ create_pipe_from_pipe_data (PipeData  *pipe_data,
 gboolean
 wing_named_pipe_listener_add_named_pipe (WingNamedPipeListener  *listener,
                                          const gchar            *pipe_name,
+                                         const gchar            *security_descriptor,
                                          GObject                *source_object,
                                          GError                **error)
 {
@@ -222,7 +265,7 @@ wing_named_pipe_listener_add_named_pipe (WingNamedPipeListener  *listener,
 
   priv = wing_named_pipe_listener_get_instance_private (listener);
 
-  pipe_data = pipe_data_new (pipe_name, source_object);
+  pipe_data = pipe_data_new (pipe_name, security_descriptor, source_object);
   if (!create_pipe_from_pipe_data (pipe_data, error))
     {
       pipe_data_free (pipe_data);
