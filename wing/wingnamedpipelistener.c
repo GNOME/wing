@@ -577,7 +577,6 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
   PipeData *pipe_data;
   GTask *task;
   GList *sources;
-  guint i;
 
   task = g_task_new (listener, cancellable, callback, user_data);
 
