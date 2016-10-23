@@ -168,6 +168,9 @@ create_pipe_from_pipe_data (PipeData  *pipe_data,
   /* Set event as signaled */
   SetEvent(pipe_data->overlapped.hEvent);
 
+  /* clear the flag if this was already connected */
+  pipe_data->already_connected = FALSE;
+
   pipe_data->handle = CreateNamedPipeW (pipe_data->pipe_namew,
                                         PIPE_ACCESS_DUPLEX |
                                         FILE_FLAG_OVERLAPPED,
