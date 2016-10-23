@@ -21,7 +21,7 @@
 
 #include <Windows.h>
 
-#define DCV_SERVICE_STARTUP 256
+#define WING_SERVICE_STARTUP 256
 
 
 typedef struct _WingServicePrivate
@@ -264,7 +264,7 @@ wing_service_constructed (GObject *object)
   priv->status.dwControlsAccepted = service_flags (service);
 
   /* service options */
-  option_group = g_option_group_new ("dcvservice",
+  option_group = g_option_group_new ("wing",
                                      "Windows Service Options",
                                      "Show the Windows Service Options",
                                      NULL, NULL);
@@ -464,7 +464,7 @@ on_control_handler_idle (gpointer user_data)
 
   switch (data->control)
     {
-    case DCV_SERVICE_STARTUP:
+    case WING_SERVICE_STARTUP:
       g_signal_emit (G_OBJECT (service), signals[START], 0);
       break;
     case SERVICE_CONTROL_STOP:
@@ -507,7 +507,7 @@ control_handler (DWORD control)
 
   switch (control)
   {
-    case DCV_SERVICE_STARTUP:
+    case WING_SERVICE_STARTUP:
       set_service_status (service, SERVICE_START_PENDING);
       g_idle_add_full (G_PRIORITY_DEFAULT,
                        on_control_handler_idle,
@@ -577,7 +577,7 @@ service_main (DWORD     argc,
 
   priv->status_handle = RegisterServiceCtrlHandlerW (priv->namew, control_handler);
 
-  control_handler (DCV_SERVICE_STARTUP);
+  control_handler (WING_SERVICE_STARTUP);
 }
 
 static gpointer
