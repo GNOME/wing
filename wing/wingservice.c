@@ -78,15 +78,15 @@ static gboolean stop_service;
 static gboolean exec_service_as_application;
 static const GOptionEntry entries[] =
 {
-  { "install", 'i', 0, G_OPTION_ARG_NONE, &install_service,
+  { "install", '\0', 0, G_OPTION_ARG_NONE, &install_service,
     "Installs the service in the Windows service manager" },
-  { "uninstall", 'u', 0, G_OPTION_ARG_NONE, &uninstall_service,
+  { "uninstall", '\0', 0, G_OPTION_ARG_NONE, &uninstall_service,
     "Uninstalls the service from the Windows service manager" },
   { "start", '\0', 0, G_OPTION_ARG_NONE, &start_service,
     "Starts the service using the Windows service manager" },
   { "stop", '\0', 0, G_OPTION_ARG_NONE, &stop_service,
     "Stops the service using the Windows service manager" },
-  { "exec", 'e', 0, G_OPTION_ARG_NONE, &exec_service_as_application,
+  { "exec", '\0', 0, G_OPTION_ARG_NONE, &exec_service_as_application,
     "Launches the service as a normal application" },
   { NULL }
 };
