@@ -20,7 +20,9 @@
 
 G_BEGIN_DECLS
 
-const wchar_t  *_wing_service_get_namew  (WingService *service);
+const wchar_t  *_wing_service_get_namew         (WingService *service);
+
+const wchar_t  *_wing_service_get_descriptionw  (WingService *service);
 
 G_END_DECLS
 

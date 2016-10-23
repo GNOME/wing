@@ -28,6 +28,8 @@ typedef struct _WingServicePrivate
 {
   gchar *name;
   wchar_t *namew;
+  gchar *description;
+  wchar_t *descriptionw;
   WingServiceFlags flags;
   GApplication *application;
   GThread *thread;
@@ -51,6 +53,7 @@ enum
 {
   PROP_0,
   PROP_NAME,
+  PROP_DESCRIPTION,
   PROP_FLAGS,
   PROP_APPLICATION,
   LAST_PROP
@@ -109,6 +112,8 @@ wing_service_finalize (GObject *object)
 
   g_free (priv->name);
   g_free (priv->namew);
+  g_free (priv->description);
+  g_free (priv->descriptionw);
 
   if (wing_service_get_default() == service)
     wing_service_set_default(NULL);
@@ -150,6 +155,9 @@ wing_service_get_property (GObject    *object,
     case PROP_NAME:
       g_value_set_string (value, priv->name);
       break;
+    case PROP_DESCRIPTION:
+      g_value_set_string (value, priv->description);
+      break;
     case PROP_FLAGS:
       g_value_set_int (value, priv->flags);
       break;
@@ -178,6 +186,10 @@ wing_service_set_property (GObject      *object,
     case PROP_NAME:
       priv->name = g_value_dup_string (value);
       priv->namew = g_utf8_to_utf16 (priv->name, -1, NULL, NULL, NULL);
+      break;
+    case PROP_DESCRIPTION:
+      priv->description = g_value_dup_string (value);
+      priv->descriptionw = g_utf8_to_utf16 (priv->description, -1, NULL, NULL, NULL);
       break;
     case PROP_FLAGS:
       priv->flags = g_value_get_int (value);
@@ -305,6 +317,14 @@ wing_service_class_init (WingServiceClass *klass)
                          G_PARAM_READWRITE |
                          G_PARAM_CONSTRUCT_ONLY);
 
+  props[PROP_DESCRIPTION] =
+    g_param_spec_string ("description",
+                         "Description",
+                         "Description",
+                         NULL,
+                         G_PARAM_READWRITE |
+                         G_PARAM_CONSTRUCT_ONLY);
+
   props[PROP_FLAGS] =
     g_param_spec_int ("flags",
                       "Flags",
@@ -381,11 +401,13 @@ wing_service_init (WingService *service)
 
 WingService *
 wing_service_new (const gchar      *name,
+                  const gchar      *description,
                   WingServiceFlags  flags,
                   GApplication     *application)
 {
   return g_object_new (WING_TYPE_SERVICE,
                        "name", name,
+                       "description", description,
                        "flags", flags,
                        "application", application,
                        NULL);
@@ -427,6 +449,30 @@ _wing_service_get_namew (WingService *service)
   priv = wing_service_get_instance_private (service);
 
   return priv->namew;
+}
+
+const gchar *
+wing_service_get_description (WingService *service)
+{
+  WingServicePrivate *priv;
+
+  g_return_val_if_fail (WING_IS_SERVICE (service), NULL);
+
+  priv = wing_service_get_instance_private (service);
+
+  return priv->description;
+}
+
+const wchar_t *
+_wing_service_get_descriptionw (WingService *service)
+{
+  WingServicePrivate *priv;
+
+  g_return_val_if_fail(WING_IS_SERVICE (service), NULL);
+
+  priv = wing_service_get_instance_private (service);
+
+  return priv->descriptionw;
 }
 
 WingServiceFlags

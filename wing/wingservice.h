@@ -75,6 +75,7 @@ GType                  wing_service_get_type        (void) G_GNUC_CONST;
 
 WING_AVAILABLE_IN_ALL
 WingService           *wing_service_new             (const gchar      *name,
+                                                     const gchar      *description,
                                                      WingServiceFlags  flags,
                                                      GApplication     *application);
 
@@ -86,6 +87,9 @@ void                   wing_service_set_default     (WingService *service);
 
 WING_AVAILABLE_IN_ALL
 const gchar           *wing_service_get_name        (WingService *service);
+
+WING_AVAILABLE_IN_ALL
+const gchar           *wing_service_get_description (WingService *service);
 
 WING_AVAILABLE_IN_ALL
 WingServiceFlags       wing_service_get_flags       (WingService *service);
