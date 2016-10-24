@@ -272,7 +272,11 @@ wing_service_constructed (GObject *object)
     wing_service_set_default (service);
 
   priv->status.dwCurrentState = SERVICE_STOPPED;
-  priv->status.dwServiceType = SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS;
+
+  priv->status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+  if (priv->flags & WING_SERVICE_IS_INTERACTIVE)
+    priv->status.dwServiceType |= SERVICE_INTERACTIVE_PROCESS;
+
   priv->status.dwControlsAccepted = service_flags (service);
 
   /* service options */
