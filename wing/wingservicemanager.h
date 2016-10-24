@@ -29,6 +29,13 @@ G_BEGIN_DECLS
 
 typedef struct _WingServiceManager          WingServiceManager;
 
+typedef enum
+{
+  WING_SERVICE_MANAGER_START_AUTO,
+  WING_SERVICE_MANAGER_START_DEMAND,
+  WING_SERVICE_MANAGER_START_DISABLED
+} WingServiceManagerStartType;
+
 WING_AVAILABLE_IN_ALL
 GType                   wing_service_manager_get_type                 (void) G_GNUC_CONST;
 
@@ -36,36 +43,37 @@ WING_AVAILABLE_IN_ALL
 WingServiceManager     *wing_service_manager_new                      (void);
 
 WING_AVAILABLE_IN_ALL
-gboolean                wing_service_manager_install_service          (WingServiceManager  *manager,
-                                                                       WingService         *service,
-                                                                       GError             **error);
+gboolean                wing_service_manager_install_service          (WingServiceManager           *manager,
+                                                                       WingService                  *service,
+                                                                       WingServiceManagerStartType   start_type,
+                                                                       GError                      **error);
 
 WING_AVAILABLE_IN_ALL
-gboolean                wing_service_manager_uninstall_service        (WingServiceManager  *manager,
-                                                                       WingService         *service,
-                                                                       GError             **error);
+gboolean                wing_service_manager_uninstall_service        (WingServiceManager           *manager,
+                                                                       WingService                  *service,
+                                                                       GError                      **error);
 
 WING_AVAILABLE_IN_ALL
-gboolean                wing_service_manager_get_service_installed    (WingServiceManager  *manager,
-                                                                       WingService         *service,
-                                                                       GError             **error);
+gboolean                wing_service_manager_get_service_installed    (WingServiceManager           *manager,
+                                                                       WingService                  *service,
+                                                                       GError                      **error);
 
 WING_AVAILABLE_IN_ALL
-gboolean                wing_service_manager_get_service_running      (WingServiceManager  *manager,
-                                                                       WingService         *service,
-                                                                       GError             **error);
+gboolean                wing_service_manager_get_service_running      (WingServiceManager           *manager,
+                                                                       WingService                  *service,
+                                                                       GError                      **error);
 
 WING_AVAILABLE_IN_ALL
-gboolean                wing_service_manager_start_service            (WingServiceManager  *manager,
-                                                                       WingService         *service,
-                                                                       int                  argc,
-                                                                       char               **argv,
-                                                                       GError             **error);
+gboolean                wing_service_manager_start_service            (WingServiceManager           *manager,
+                                                                       WingService                  *service,
+                                                                       int                           argc,
+                                                                       char                        **argv,
+                                                                       GError                      **error);
 
 WING_AVAILABLE_IN_ALL
-gboolean                wing_service_manager_stop_service             (WingServiceManager  *manager,
-                                                                       WingService         *service,
-                                                                       GError             **error);
+gboolean                wing_service_manager_stop_service             (WingServiceManager           *manager,
+                                                                       WingService                  *service,
+                                                                       GError                      **error);
 
 G_END_DECLS
 

@@ -108,9 +108,10 @@ get_file_path (void)
 }
 
 gboolean
-wing_service_manager_install_service (WingServiceManager  *manager,
-                                      WingService         *service,
-                                      GError             **error)
+wing_service_manager_install_service (WingServiceManager           *manager,
+                                      WingService                  *service,
+                                      WingServiceManagerStartType   start_type,
+                                      GError                      **error)
 {
   SC_HANDLE sc;
   SC_HANDLE service_handle;
@@ -118,6 +119,7 @@ wing_service_manager_install_service (WingServiceManager  *manager,
   gboolean result = FALSE;
   WingServiceFlags service_flags;
   DWORD service_type;
+  DWORD service_start_type;
 
   g_return_val_if_fail (WING_IS_SERVICE_MANAGER (manager), FALSE);
   g_return_val_if_fail (WING_IS_SERVICE (service), FALSE);
@@ -133,12 +135,25 @@ wing_service_manager_install_service (WingServiceManager  *manager,
   if (service_flags & WING_SERVICE_IS_INTERACTIVE)
     service_type |= SERVICE_INTERACTIVE_PROCESS;
 
+  switch (start_type)
+    {
+    case WING_SERVICE_MANAGER_START_AUTO:
+      service_start_type = SERVICE_AUTO_START;
+      break;
+    case WING_SERVICE_MANAGER_START_DEMAND:
+      service_start_type = SERVICE_DEMAND_START;
+      break;
+    case WING_SERVICE_MANAGER_START_DISABLED:
+      service_start_type = SERVICE_DISABLED;
+      break;
+    }
+
   service_handle = CreateServiceW (sc,
                                    _wing_service_get_namew (service),
                                    _wing_service_get_descriptionw (service),
                                    SERVICE_ALL_ACCESS,
                                    service_type,
-                                   SERVICE_AUTO_START,
+                                   service_start_type,
                                    SERVICE_ERROR_NORMAL,
                                    path,
                                    NULL, 0, NULL,

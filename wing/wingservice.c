@@ -76,6 +76,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 
 static gboolean install_service;
 static gboolean uninstall_service;
+static gchar *service_start_type;
 static gboolean start_service;
 static gboolean stop_service;
 static gboolean exec_service_as_application;
@@ -85,6 +86,9 @@ static const GOptionEntry entries[] =
     "Installs the service in the Windows service manager" },
   { "uninstall", '\0', 0, G_OPTION_ARG_NONE, &uninstall_service,
     "Uninstalls the service from the Windows service manager" },
+  { "start-type", '\0', 0, G_OPTION_ARG_STRING, &service_start_type,
+    "Whether to start the service automatically or on demand",
+    "auto|demand|disabled" },
   { "start", '\0', 0, G_OPTION_ARG_NONE, &start_service,
     "Starts the service using the Windows service manager" },
   { "stop", '\0', 0, G_OPTION_ARG_NONE, &stop_service,
@@ -230,14 +234,20 @@ on_handle_local_options (GApplication *application,
 {
   WingServicePrivate *priv;
   WingServiceManager *manager;
+  WingServiceManagerStartType start_type = WING_SERVICE_MANAGER_START_AUTO;
   gint ret = -1;
 
   manager = wing_service_manager_new ();
 
   priv = wing_service_get_instance_private (service);
 
+  if (g_strcmp0 (service_start_type, "demand") == 0)
+    start_type = WING_SERVICE_MANAGER_START_DEMAND;
+  else if (g_strcmp0 (service_start_type, "disabled") == 0)
+    start_type = WING_SERVICE_MANAGER_START_DISABLED;
+
   if (install_service)
-    ret = wing_service_manager_install_service (manager, service, NULL) ? 0 : 1;
+    ret = wing_service_manager_install_service (manager, service, start_type, NULL) ? 0 : 1;
   else if (uninstall_service)
     ret = wing_service_manager_uninstall_service (manager, service, NULL) ? 0 : 1;
   else if (stop_service)
@@ -248,6 +258,7 @@ on_handle_local_options (GApplication *application,
   else if (start_service || priv->from_console)
     ret = wing_service_manager_start_service (manager, service, 0, NULL, NULL) ? 0 : 1;
 
+  g_clear_pointer (&service_start_type, g_free);
   g_object_unref (manager);
 
   if (ret == -1)
