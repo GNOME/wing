@@ -359,8 +359,6 @@ add_sources (WingNamedPipeListener *listener,
              GMainContext          *context)
 {
   WingNamedPipeListenerPrivate *priv;
-  PipeData *data;
-  GSource *source;
   GList *sources;
   guint i;
 
@@ -369,6 +367,9 @@ add_sources (WingNamedPipeListener *listener,
   sources = NULL;
   for (i = 0; i < priv->named_pipes->len; i++)
     {
+      PipeData *data;
+      GSource *source;
+
       data = priv->named_pipes->pdata[i];
 
       source = wing_create_source (data->overlapped.hEvent,
@@ -388,9 +389,10 @@ add_sources (WingNamedPipeListener *listener,
 static void
 free_sources (GList *sources)
 {
-  GSource *source;
   while (sources != NULL)
     {
+      GSource *source;
+
       source = sources->data;
       sources = g_list_delete_link (sources, sources);
       g_source_destroy (source);
