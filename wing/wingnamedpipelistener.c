@@ -576,14 +576,11 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
                                        GAsyncReadyCallback    callback,
                                        gpointer               user_data)
 {
-  WingNamedPipeListenerPrivate *priv;
   PipeData *pipe_data;
   GTask *task;
   GList *sources;
 
   task = g_task_new (listener, cancellable, callback, user_data);
-
-  priv = wing_named_pipe_listener_get_instance_private (listener);
 
   pipe_data = find_first_connected (listener);
 
