@@ -1,0 +1,1 @@
+option('enable-debug', type: 'combo', choices: [ 'auto', 'yes', 'minimum', 'no' ], value: 'yes', description: 'Enable debugging level')
