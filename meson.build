@@ -168,8 +168,6 @@ gio = dependency('gio-2.0', version: '>=' + glib_req)
 gio_windows = dependency('gio-windows-2.0', version: '>=' + glib_req)
 build_gobject = gobject.found()
 
-gnome = import('gnome')
-
 # Generate the pkg-config files
 configure_file(input: 'wing-@0@.pc.in'.format(wing_api_version),
                output: 'wing-@0@.pc'.format(wing_api_version),
