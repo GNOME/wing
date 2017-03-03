@@ -38,7 +38,7 @@ wing = shared_library('wing-@0@'.format(wing_api_version),
   soversion: soversion,
   install: true,
   dependencies: platform_deps,
-  c_args: extra_args + common_flags + debug_flags + [
+  c_args: extra_args + common_flags + [
             '-DG_LOG_DOMAIN="Wing"' ],
   link_args: wing_link_args)
 

@@ -117,38 +117,6 @@ foreach cflag: test_cflags
   endif
 endforeach
 
-# Debugging
-enable_debug = get_option('enable-debug')
-if enable_debug == 'auto'
-  if wing_minor_version.is_odd()
-    enable_debug = 'yes'
-  else
-    enable_debug = 'minimum'
-  endif
-endif
-
-debug_flags = []
-if enable_debug == 'yes'
-  debug_flags += [
-    '-DWING_ENABLE_DEBUG'
-  ]
-endif
-
-if enable_debug == 'minimum'
-  debug_flags += [
-    '-DWING_ENABLE_DEBUG',
-    '-DG_DISABLE_CAST_CHECKS'
-  ]
-endif
-
-if enable_debug == 'no'
-  debug_flags += [
-    '-DG_DISABLE_CAST_CHECKS',
-    '-DG_DISABLE_CHECKS',
-    '-DG_DISABLE_ASSERT'
-  ]
-endif
-
 extra_args= []
 # Detect and set symbol visibility
 if cc.get_id() == 'msvc'
