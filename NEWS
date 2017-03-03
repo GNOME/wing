@@ -1,0 +1,6 @@
+News in 0.0.2
+-------------
+* Named pipes API
+* Windows services API
+* Windows specific utilities
+* GLib GSource from HANDLE
