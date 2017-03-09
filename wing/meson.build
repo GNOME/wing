@@ -43,7 +43,7 @@ wing = shared_library('wing-@0@'.format(wing_api_version),
   link_args: wing_link_args)
 
 # Internal dependency, for tests and benchmarks
-wing_inc = include_directories([ meson.current_source_dir(), meson.current_build_dir(), meson.build_root(), meson.source_root() ])
+wing_inc = include_directories([ '.', '..' ])
 wing_dep = declare_dependency(link_with: wing,
                               include_directories: [ wing_inc ],
                               dependencies: platform_deps)
