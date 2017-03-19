@@ -4,7 +4,7 @@ project('wing', 'c',
           'buildtype=debugoptimized',
           'warning_level=2'
         ],
-        license: 'LGPL2+',
+        license: 'LGPLv2.1+',
         meson_version: '>= 0.36.0')
 
 wing_version = meson.project_version()
