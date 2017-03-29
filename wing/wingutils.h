@@ -44,6 +44,9 @@ WING_AVAILABLE_IN_ALL
 gboolean     wing_get_process_times    (gint64 *current_user_time,
                                         gint64 *current_system_time);
 
+WING_AVAILABLE_IN_ALL
+guint        wing_get_n_processors     (void);
+
 G_END_DECLS
 
 #endif /* WING_UTILS_H */

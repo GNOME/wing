@@ -155,3 +155,15 @@ wing_get_process_times (gint64 *current_user_time,
 
   return TRUE;
 }
+
+guint
+wing_get_n_processors (void)
+{
+  int n;
+  SYSTEM_INFO sysinfo;
+
+  GetSystemInfo (&sysinfo);
+  n = sysinfo.dwNumberOfProcessors;
+
+  return n > 1 ? (guint)n : 1;
+}
