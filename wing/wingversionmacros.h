@@ -17,8 +17,8 @@
  * Authors: Ignacio Casal Quinteiro <ignacio.casal@nice-software.com>
  */
 
-#ifndef __WING_VERSION_MACROS_H__
-#define __WING_VERSION_MACROS_H__
+#ifndef WING_VERSION_MACROS_H
+#define WING_VERSION_MACROS_H
 
 #ifndef _WING_EXTERN
 #define _WING_EXTERN extern
@@ -26,4 +26,4 @@
 
 #define WING_AVAILABLE_IN_ALL                   _WING_EXTERN
 
-#endif /* __WING_VERSION_MACROS_H__ */
+#endif /* WING_VERSION_MACROS_H */
