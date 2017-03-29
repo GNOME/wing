@@ -18,6 +18,7 @@
 #include "wingutils.h"
 
 #include <windows.h>
+#include <Psapi.h>
 
 gboolean
 wing_is_wow_64 (void)
@@ -111,4 +112,24 @@ wing_get_monotonic_time (void)
     }
 
   return g_get_monotonic_time ();
+}
+
+gboolean
+wing_get_process_memory (gsize *total_virtual_memory,
+                         gsize *total_physical_memory)
+{
+  gboolean res;
+  /* see: https://msdn.microsoft.com/en-us/library/windows/desktop/ms684879(v=vs.85).aspx */
+  PROCESS_MEMORY_COUNTERS_EX pmc;
+
+  res = GetProcessMemoryInfo (GetCurrentProcess (), (PPROCESS_MEMORY_COUNTERS) &pmc, sizeof (pmc));
+  if (res)
+    {
+      /* note: the memory shown by the task manager is usually the private working set,
+       * we are using the working set size instead */
+      *total_virtual_memory = pmc.WorkingSetSize + pmc.PagefileUsage;
+      *total_physical_memory = pmc.WorkingSetSize;
+    }
+
+  return res;
 }

@@ -36,6 +36,10 @@ gboolean     wing_get_version_number   (gint *major,
 WING_AVAILABLE_IN_ALL
 gint64       wing_get_monotonic_time   (void);
 
+WING_AVAILABLE_IN_ALL
+gboolean     wing_get_process_memory   (gsize *total_virtual_memory,
+                                        gsize *total_physical_memory);
+
 G_END_DECLS
 
 #endif /* WING_UTILS_H */
