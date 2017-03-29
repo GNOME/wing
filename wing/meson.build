@@ -10,7 +10,12 @@ headers = [
   'wingutils.h',
 ]
 
+private_headers = [
+  'wing-init.h',
+]
+
 sources = [
+  'wing-init.c',
   'wingnamedpipeclient.c',
   'wingnamedpipeconnection.c',
   'wingnamedpipelistener.c',

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 NICE s.r.l.
+ * Copyright (C) 2017 NICE s.r.l.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,27 +15,30 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WING_UTILS_H
-#define WING_UTILS_H
-
+#include <wing/wing.h>
 #include <glib.h>
-#include <wing/wingversionmacros.h>
 
-G_BEGIN_DECLS
+static void
+test_monotonic_time (void)
+{
+  gint64 t1, t2;
 
-WING_AVAILABLE_IN_ALL
-gboolean     wing_is_wow_64            (void);
+  t1 = wing_get_monotonic_time ();
+  t2 = wing_get_monotonic_time ();
+  g_assert_cmpint (t2, >=, t1);
 
-WING_AVAILABLE_IN_ALL
-gboolean     wing_is_os_64bit          (void);
+  g_usleep(10000);
+  t2 = wing_get_monotonic_time ();
+  g_assert_cmpint (t2, >, t1 + 10000);
+}
 
-WING_AVAILABLE_IN_ALL
-gboolean     wing_get_version_number   (gint *major,
-                                        gint *minor);
+int
+main(int    argc,
+     char **argv)
+{
+  g_test_init (&argc, &argv, NULL);
 
-WING_AVAILABLE_IN_ALL
-gint64       wing_get_monotonic_time   (void);
+  g_test_add_func ("/utils/monotonic-time", test_monotonic_time);
 
-G_END_DECLS
-
-#endif /* WING_UTILS_H */
+  return g_test_run ();
+}

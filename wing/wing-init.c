@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 NICE s.r.l.
+ * Copyright (C) 2017 NICE s.r.l.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,27 +15,30 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WING_UTILS_H
-#define WING_UTILS_H
+#include "wing-init.h"
+#include <windows.h>
 
-#include <glib.h>
-#include <wing/wingversionmacros.h>
+BOOL WINAPI DllMain (HINSTANCE hinstDLL,
+                     DWORD     fdwReason,
+                     LPVOID    lpvReserved);
 
-G_BEGIN_DECLS
+HMODULE wing_dll;
 
-WING_AVAILABLE_IN_ALL
-gboolean     wing_is_wow_64            (void);
+BOOL WINAPI
+DllMain (HINSTANCE hinstDLL,
+         DWORD     fdwReason,
+         LPVOID    lpvReserved)
+{
+  switch (fdwReason)
+    {
+    case DLL_PROCESS_ATTACH:
+      wing_dll = hinstDLL;
+      wing_init_monotonic_time ();
+      break;
+    default:
+      /* do nothing */
+      ;
+    }
 
-WING_AVAILABLE_IN_ALL
-gboolean     wing_is_os_64bit          (void);
-
-WING_AVAILABLE_IN_ALL
-gboolean     wing_get_version_number   (gint *major,
-                                        gint *minor);
-
-WING_AVAILABLE_IN_ALL
-gint64       wing_get_monotonic_time   (void);
-
-G_END_DECLS
-
-#endif /* WING_UTILS_H */
+  return TRUE;
+}

@@ -1,5 +1,6 @@
 unit_tests = [
-  'named-pipe'
+  'named-pipe',
+  'utils',
 ]
 
 foreach unit: unit_tests

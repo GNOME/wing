@@ -72,3 +72,43 @@ wing_get_version_number (gint *major,
 
   return TRUE;
 }
+
+static gint64 monotonic_ticks_per_sec = 0;
+
+void
+wing_init_monotonic_time (void)
+{
+  LARGE_INTEGER freq;
+
+  if (!QueryPerformanceFrequency (&freq) || freq.QuadPart == 0)
+    {
+      g_warning ("Unable to use QueryPerformanceCounter (%d). Fallback to low resolution timer", GetLastError ());
+      monotonic_ticks_per_sec = 0;
+      return;
+    }
+
+  monotonic_ticks_per_sec = freq.QuadPart;
+}
+
+gint64
+wing_get_monotonic_time (void)
+{
+  if (G_LIKELY (monotonic_ticks_per_sec != 0))
+    {
+      LARGE_INTEGER ticks;
+
+      if (QueryPerformanceCounter (&ticks))
+        {
+          gint64 time;
+
+          time = ticks.QuadPart * G_USEC_PER_SEC; /* multiply first to avoid loss of precision */
+
+          return time / monotonic_ticks_per_sec;
+        }
+
+      g_warning ("QueryPerformanceCounter Failed (%d). Permanently fallback to low resolution timer", GetLastError ());
+      monotonic_ticks_per_sec = 0;
+    }
+
+  return g_get_monotonic_time ();
+}
