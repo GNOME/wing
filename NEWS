@@ -1,3 +1,9 @@
+News in 0.0.4
+-------------
+* Add utilities to get the number of processors, process time and memory
+* Add support for monotonic times
+* Fix build with meson 0.39
+
 News in 0.0.2
 -------------
 * Named pipes API
