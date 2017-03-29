@@ -40,6 +40,10 @@ WING_AVAILABLE_IN_ALL
 gboolean     wing_get_process_memory   (gsize *total_virtual_memory,
                                         gsize *total_physical_memory);
 
+WING_AVAILABLE_IN_ALL
+gboolean     wing_get_process_times    (gint64 *current_user_time,
+                                        gint64 *current_system_time);
+
 G_END_DECLS
 
 #endif /* WING_UTILS_H */

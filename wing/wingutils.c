@@ -133,3 +133,25 @@ wing_get_process_memory (gsize *total_virtual_memory,
 
   return res;
 }
+
+static gint64
+get_time_from_filetime (const FILETIME *ft)
+{
+  gint64 t1 = (gint64)ft->dwHighDateTime << 32 | ft->dwLowDateTime;
+
+  return t1 / 10 - 11644473600000000; /* Jan 1, 1601 */
+}
+
+gboolean
+wing_get_process_times (gint64 *current_user_time,
+                        gint64 *current_system_time)
+{
+  FILETIME creation_time, exit_time, kernel_time, user_time;
+
+  GetProcessTimes (GetCurrentProcess (), &creation_time, &exit_time, &kernel_time, &user_time);
+
+  *current_user_time = get_time_from_filetime (&user_time);
+  *current_system_time = get_time_from_filetime (&kernel_time);
+
+  return TRUE;
+}
