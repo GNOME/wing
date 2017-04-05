@@ -1,5 +1,6 @@
 headers = [
   'wing.h',
+  'wingeventwindow.h',
   'wingversionmacros.h',
   'wingnamedpipeclient.h',
   'wingnamedpipeconnection.h',
@@ -15,6 +16,7 @@ private_headers = [
 ]
 
 sources = [
+  'wingeventwindow.c',
   'wing-init.c',
   'wingnamedpipeclient.c',
   'wingnamedpipeconnection.c',

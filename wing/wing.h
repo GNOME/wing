@@ -21,6 +21,7 @@
 #define __WING_H__
 
 #include <wing/wingversionmacros.h>
+#include <wing/wingeventwindow.h>
 #include <wing/wingnamedpipeclient.h>
 #include <wing/wingnamedpipelistener.h>
 #include <wing/wingnamedpipeconnection.h>
