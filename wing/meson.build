@@ -39,15 +39,23 @@ else
 endif
 
 wing = shared_library('wing-@0@'.format(wing_api_version),
-  include_directories: core_inc,
-  sources: sources,
-  version: libversion,
-  soversion: soversion,
-  install: true,
-  dependencies: platform_deps,
-  c_args: extra_args + common_flags + [
-            '-DG_LOG_DOMAIN="Wing"' ],
-  link_args: wing_link_args)
+                      include_directories: core_inc,
+                      sources: sources,
+                      version: libversion,
+                      soversion: soversion,
+                      install: true,
+                      dependencies: platform_deps,
+                      c_args: extra_args + common_flags + [ '-DG_LOG_DOMAIN="Wing"' ],
+                      link_args: wing_link_args)
+
+# Generate pc file
+pkgg = import('pkgconfig')
+
+pkgg.generate(libraries: [ wing ],
+              version: libversion,
+              name: 'wing',
+              description: 'Wing is a library which provides GLib-like API to some Windows API.',
+              requires: 'glib-2.0 >= ' + glib_req + ', gobject-2.0 >= ' + glib_req + ', gio-2.0 >= ' + glib_req)
 
 # Internal dependency, for tests and benchmarks
 wing_inc = include_directories([ '.', '..' ])
