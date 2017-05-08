@@ -61,29 +61,26 @@ if cc.get_id() == 'msvc'
   # glib's msvc_recommended_pragmas.h--please see that file for
   # the meaning of the warning codes used here
   test_cflags = [
-    '-we4002',
-    '-we4003',
-    '-w14010',
-    '-we4013',
-    '-w14016',
-    '-we4020',
-    '-we4021',
-    '-we4027',
-    '-we4029',
-    '-we4033',
-    '-we4035',
-    '-we4045',
-    '-we4047',
-    '-we4049',
-    '-we4053',
-    '-we4071',
-    '-we4150',
-    '-we4819'
+    '-we4002', # too many actual parameters for macro
+    '-we4003', # not enough actual parameters for macro
+    '-w14010', # single-line comment contains line-continuation character
+    '-we4013', # 'function' undefined; assuming extern returning int
+    '-w14016', # no function return type; using int as default
+    '-we4020', # too many actual parameters
+    '-we4021', # too few actual parameters
+    '-we4027', # function declared without formal parameter list
+    '-we4029', # declared formal parameter list different from definition
+    '-we4033', # 'function' must return a value
+    '-we4035', # 'function' : no return value
+    '-we4045', # array bounds overflow
+    '-we4047', # different levels of indirection
+    '-we4049', # terminating line number emission
+    '-we4053', # an expression of type void was used as an operand
+    '-we4071', # no function prototype given
+    '-we4819', # the file contains a character that cannot be represented in the current code page
   ]
-else
+elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
   test_cflags = [
-    '-ffast-math',
-    '-fstrict-aliasing',
     '-Wpointer-arith',
     '-Wmissing-declarations',
     '-Wformat=2',
@@ -93,22 +90,32 @@ else
     '-Wold-style-definition',
     '-Wdeclaration-after-statement',
     '-Wunused',
-    '-Wuninitialized',
+    '-Wno-uninitialized',
     '-Wshadow',
+    '-Wcast-align',
     '-Wmissing-noreturn',
     '-Wmissing-format-attribute',
-    '-Wredundant-decls',
     '-Wlogical-op',
-    '-Wcast-align',
-    '-Wno-unused-local-typedefs',
+    '-Wno-discarded-qualifiers',
     '-Werror=implicit',
+    '-Werror=nonnull',
     '-Werror=init-self',
     '-Werror=main',
     '-Werror=missing-braces',
+    '-Werror=sequence-point',
     '-Werror=return-type',
+    '-Werror=trigraphs',
     '-Werror=array-bounds',
-    '-Werror=write-strings'
+    '-Werror=write-strings',
+    '-Werror=address',
+    '-Werror=int-to-pointer-cast',
+    '-Werror=pointer-to-int-cast',
+    '-Werror=empty-body',
+    '-fno-strict-aliasing',
+    '-Wno-int-conversion',
   ]
+else
+  test_cflags = []
 endif
 common_flags = []
 foreach cflag: test_cflags
