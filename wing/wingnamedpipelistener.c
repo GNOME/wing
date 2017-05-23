@@ -59,7 +59,7 @@ pipe_data_new (const gchar *pipe_name,
   data->pipe_name = g_strdup (pipe_name);
   data->pipe_namew = g_utf8_to_utf16 (pipe_name, -1, NULL, NULL, NULL);
   data->security_descriptor = g_strdup (security_descriptor);
-  data->security_descriptorw = g_utf8_to_utf16 (security_descriptor, -1, NULL, NULL, NULL);
+  data->security_descriptorw = security_descriptor != NULL ? g_utf8_to_utf16 (security_descriptor, -1, NULL, NULL, NULL) : NULL;
   data->handle = INVALID_HANDLE_VALUE;
   data->overlapped.hEvent = CreateEvent (NULL, /* default security attribute */
                                          TRUE, /* manual-reset event */
