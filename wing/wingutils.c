@@ -74,7 +74,15 @@ wing_get_version_number (gint *major,
   return TRUE;
 }
 
-static gint64 monotonic_ticks_per_sec = 0;
+static gdouble monotonic_usec_per_tick = 0;
+
+/* NOTE:
+ * time_usec = ticks_since_boot * usec_per_sec / ticks_per_sec
+ *
+ * Doing (ticks_since_boot * usec_per_sec) before the division can overflow 64 bits
+ * (ticks_since_boot  / ticks_per_sec) and then multiply would not be accurate enough.
+ * So for now we calculate (usec_per_sec / ticks_per_sec) and use floating point
+ */
 
 void
 wing_init_monotonic_time (void)
@@ -84,31 +92,25 @@ wing_init_monotonic_time (void)
   if (!QueryPerformanceFrequency (&freq) || freq.QuadPart == 0)
     {
       g_warning ("Unable to use QueryPerformanceCounter (%d). Fallback to low resolution timer", GetLastError ());
-      monotonic_ticks_per_sec = 0;
+      monotonic_usec_per_tick = 0;
       return;
     }
 
-  monotonic_ticks_per_sec = freq.QuadPart;
+  monotonic_usec_per_tick = (gdouble)G_USEC_PER_SEC / freq.QuadPart;
 }
 
 gint64
 wing_get_monotonic_time (void)
 {
-  if (G_LIKELY (monotonic_ticks_per_sec != 0))
+  if (G_LIKELY (monotonic_usec_per_tick != 0))
     {
       LARGE_INTEGER ticks;
 
       if (QueryPerformanceCounter (&ticks))
-        {
-          gint64 time;
-
-          time = ticks.QuadPart * G_USEC_PER_SEC; /* multiply first to avoid loss of precision */
-
-          return time / monotonic_ticks_per_sec;
-        }
+        return (gint64)(ticks.QuadPart * monotonic_usec_per_tick);
 
       g_warning ("QueryPerformanceCounter Failed (%d). Permanently fallback to low resolution timer", GetLastError ());
-      monotonic_ticks_per_sec = 0;
+      monotonic_usec_per_tick = 0;
     }
 
   return g_get_monotonic_time ();
