@@ -1,3 +1,9 @@
+News in 0.0.6
+-------------
+* Fix overflow getting monotonic time
+* Fix assertion when security descriptor is not set on named pipes
+* Improve meson build
+
 News in 0.0.4
 -------------
 * Add utilities to get the number of processors, process time and memory
