@@ -31,16 +31,15 @@ typedef struct _WingServicePrivate
   gchar *description;
   wchar_t *descriptionw;
   WingServiceFlags flags;
-  GApplication *application;
   GThread *thread;
   gboolean from_console;
+  gint register_error;
   GMutex start_mutex;
   GCond start_cond;
   GMutex control_mutex;
   GCond control_cond;
   SERVICE_STATUS status;
   SERVICE_STATUS_HANDLE status_handle;
-  gboolean notify_service_stop;
 } WingServicePrivate;
 
 typedef struct
@@ -55,7 +54,6 @@ enum
   PROP_NAME,
   PROP_DESCRIPTION,
   PROP_FLAGS,
-  PROP_APPLICATION,
   LAST_PROP
 };
 
@@ -69,11 +67,11 @@ enum
   LAST_SIGNAL
 };
 
+G_DEFINE_QUARK (wing-service-error-quark, wing_service_error)
 G_DEFINE_TYPE_WITH_PRIVATE (WingService, wing_service, G_TYPE_OBJECT)
 
 static GParamSpec *props[LAST_PROP];
 static guint signals[LAST_SIGNAL] = { 0 };
-
 static gboolean install_service;
 static gboolean uninstall_service;
 static gchar *service_start_type;
@@ -131,19 +129,6 @@ wing_service_finalize (GObject *object)
 }
 
 static void
-wing_service_dispose (GObject *object)
-{
-  WingService *service = WING_SERVICE (object);
-  WingServicePrivate *priv;
-
-  priv = wing_service_get_instance_private (service);
-
-  g_clear_object (&priv->application);
-
-  G_OBJECT_CLASS (wing_service_parent_class)->dispose (object);
-}
-
-static void
 wing_service_get_property (GObject    *object,
                            guint       prop_id,
                            GValue     *value,
@@ -164,9 +149,6 @@ wing_service_get_property (GObject    *object,
       break;
     case PROP_FLAGS:
       g_value_set_int (value, priv->flags);
-      break;
-    case PROP_APPLICATION:
-      g_value_set_object (value, priv->application);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -198,9 +180,6 @@ wing_service_set_property (GObject      *object,
     case PROP_FLAGS:
       priv->flags = g_value_get_int (value);
       break;
-    case PROP_APPLICATION:
-      priv->application = g_value_dup_object (value);
-      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -227,55 +206,11 @@ service_flags (WingService *service)
   return control;
 }
 
-static gint
-on_handle_local_options (GApplication *application,
-                         GVariantDict *options,
-                         WingService  *service)
-{
-  WingServicePrivate *priv;
-  WingServiceManager *manager;
-  WingServiceManagerStartType start_type = WING_SERVICE_MANAGER_START_AUTO;
-  gint ret = -1;
-
-  manager = wing_service_manager_new ();
-
-  priv = wing_service_get_instance_private (service);
-
-  if (g_strcmp0 (service_start_type, "demand") == 0)
-    start_type = WING_SERVICE_MANAGER_START_DEMAND;
-  else if (g_strcmp0 (service_start_type, "disabled") == 0)
-    start_type = WING_SERVICE_MANAGER_START_DISABLED;
-
-  if (install_service)
-    ret = wing_service_manager_install_service (manager, service, start_type, NULL) ? 0 : 1;
-  else if (uninstall_service)
-    ret = wing_service_manager_uninstall_service (manager, service, NULL) ? 0 : 1;
-  else if (stop_service)
-    ret =  wing_service_manager_stop_service (manager, service, NULL) ? 0 : 1;
-  else if (exec_service_as_application)
-    /* do nothing so the application continues to run */
-    ret = -1;
-  else if (start_service || priv->from_console)
-    ret = wing_service_manager_start_service (manager, service, 0, NULL, NULL) ? 0 : 1;
-
-  g_clear_pointer (&service_start_type, g_free);
-  g_object_unref (manager);
-
-  if (ret == -1)
-    {
-      priv->notify_service_stop = TRUE;
-      g_application_hold (priv->application);
-    }
-
-  return ret;
-}
-
 static void
 wing_service_constructed (GObject *object)
 {
   WingService *service = WING_SERVICE (object);
   WingServicePrivate *priv;
-  GOptionGroup *option_group;
 
   priv = wing_service_get_instance_private (service);
 
@@ -290,19 +225,6 @@ wing_service_constructed (GObject *object)
 
   priv->status.dwControlsAccepted = service_flags (service);
 
-  /* service options */
-  option_group = g_option_group_new ("wing",
-                                     "Windows Service Options",
-                                     "Show the Windows Service Options",
-                                     NULL, NULL);
-  g_option_group_add_entries (option_group, entries);
-  g_application_add_option_group (priv->application, option_group);
-
-  g_signal_connect (priv->application,
-                    "handle-local-options",
-                    G_CALLBACK (on_handle_local_options),
-                    service);
-
   G_OBJECT_CLASS (wing_service_parent_class)->constructed (object);
 }
 
@@ -312,7 +234,6 @@ wing_service_class_init (WingServiceClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   object_class->finalize = wing_service_finalize;
-  object_class->dispose = wing_service_dispose;
   object_class->get_property = wing_service_get_property;
   object_class->set_property = wing_service_set_property;
   object_class->constructed = wing_service_constructed;
@@ -342,14 +263,6 @@ wing_service_class_init (WingServiceClass *klass)
                       0,
                       G_PARAM_READWRITE |
                       G_PARAM_CONSTRUCT_ONLY);
-
-  props[PROP_APPLICATION] =
-    g_param_spec_object ("application",
-                         "Application",
-                         "Application",
-                         G_TYPE_APPLICATION,
-                         G_PARAM_READWRITE |
-                         G_PARAM_CONSTRUCT_ONLY);
 
   g_object_class_install_properties (object_class, LAST_PROP, props);
 
@@ -407,17 +320,25 @@ wing_service_init (WingService *service)
   g_cond_init (&priv->control_cond);
 }
 
+/**
+ * wing_service_new:
+ * @name: the name of the service
+ * @description: the description of the service
+ * @flags: the #WingServiceFlags for the service
+ *
+ * Creates a new #WingService.
+ *
+ * Returns: a new #WingService.
+ */
 WingService *
 wing_service_new (const gchar      *name,
                   const gchar      *description,
-                  WingServiceFlags  flags,
-                  GApplication     *application)
+                  WingServiceFlags  flags)
 {
   return g_object_new (WING_TYPE_SERVICE,
                        "name", name,
                        "description", description,
                        "flags", flags,
-                       "application", application,
                        NULL);
 }
 
@@ -435,6 +356,14 @@ wing_service_set_default (WingService *service)
   default_service = service;
 }
 
+/**
+ * wing_service_get_name:
+ * @service: a #WingService
+ *
+ * Gets the name of the service.
+ *
+ * Returns: the name of the service.
+ */
 const gchar *
 wing_service_get_name (WingService *service)
 {
@@ -459,6 +388,14 @@ _wing_service_get_namew (WingService *service)
   return priv->namew;
 }
 
+/**
+ * wing_service_get_description:
+ * @service: a #WingService
+ *
+ * Gets the description of the service.
+ *
+ * Returns: the description of the service.
+ */
 const gchar *
 wing_service_get_description (WingService *service)
 {
@@ -483,6 +420,14 @@ _wing_service_get_descriptionw (WingService *service)
   return priv->descriptionw;
 }
 
+/**
+ * wing_service_get_flags:
+ * @service: a #WingService
+ *
+ * Gets the flags of the service.
+ *
+ * Returns: the flags of the service.
+ */
 WingServiceFlags
 wing_service_get_flags (WingService *service)
 {
@@ -524,8 +469,6 @@ on_control_handler_idle (gpointer user_data)
     case SERVICE_CONTROL_STOP:
     case SERVICE_CONTROL_SHUTDOWN:
       g_signal_emit (G_OBJECT (service), signals[STOP], 0);
-      g_application_release (priv->application);
-      g_application_quit (priv->application);
       break;
     case SERVICE_CONTROL_PAUSE:
       g_signal_emit (G_OBJECT (service), signals[PAUSE], 0);
@@ -560,7 +503,7 @@ control_handler (DWORD control)
   g_mutex_lock (&priv->control_mutex);
 
   switch (control)
-  {
+    {
     case WING_SERVICE_STARTUP:
       set_service_status (service, SERVICE_START_PENDING);
       g_idle_add_full (G_PRIORITY_DEFAULT,
@@ -606,7 +549,7 @@ control_handler (DWORD control)
     default:
       /* XXX: do something else here? */
       g_slice_free (IdleEventData, data);
-  }
+    }
 
   g_mutex_unlock (&priv->control_mutex);
 
@@ -650,37 +593,37 @@ service_dispatcher_run (gpointer user_data)
 
   if (!StartServiceCtrlDispatcherW (st))
     {
-      if (GetLastError () == ERROR_FAILED_SERVICE_CONTROLLER_CONNECT)
-        {
-          /* Means we're started from the console, not from the service manager */
-          priv->from_console = TRUE;
-        }
-
+      priv->register_error = GetLastError ();
       g_cond_signal (&priv->start_cond);
     }
 
   return NULL;
 }
 
-int
-wing_service_run (WingService  *service,
-                  int           argc,
-                  char        **argv)
+/**
+ * wing_service_register:
+ * @service: a #WingService
+ * @error: a #GError or %NULL
+ *
+ * Registers the service to be dispatched by the service manager.
+ *
+ * Returns: %TRUE if it was properly registered.
+ */
+gboolean
+wing_service_register (WingService  *service,
+                       GError      **error)
 {
-  WingServicePrivate *priv;
-  int status = 0;
+  WingServicePrivate *priv = wing_service_get_instance_private (service);
   gchar *thread_name;
   gint64 end_time;
 
-  g_return_val_if_fail (WING_IS_SERVICE (service), 1);
-
-  priv = wing_service_get_instance_private (service);
+  g_return_val_if_fail (WING_IS_SERVICE (service), FALSE);
 
   g_mutex_lock (&priv->start_mutex);
 
   /* StartServiceCtrlDispatcher is a blocking method, run
    * it from a different thread to not block the whole application */
-  thread_name = g_strdup_printf ("service %s", priv->name);
+  thread_name = g_strdup_printf ("Wing Service %s", priv->name);
   priv->thread = g_thread_new (thread_name, service_dispatcher_run, service);
   g_free (thread_name);
 
@@ -690,15 +633,154 @@ wing_service_run (WingService  *service,
   if (!g_cond_wait_until (&priv->start_cond, &priv->start_mutex, end_time))
     {
       g_mutex_unlock (&priv->start_mutex);
-      return 1;
+      g_set_error_literal (error,
+                           WING_SERVICE_ERROR,
+                           WING_SERVICE_ERROR_GENERIC,
+                           "Time out registering the service");
+      return FALSE;
     }
 
   g_mutex_unlock (&priv->start_mutex);
 
-  status = g_application_run (priv->application, argc, argv);
+  switch (priv->register_error)
+    {
+    case 0:
+      /* No error, just return */
+      return TRUE;
+    case ERROR_FAILED_SERVICE_CONTROLLER_CONNECT:
+      g_set_error (error,
+                   WING_SERVICE_ERROR,
+                   WING_SERVICE_ERROR_FROM_CONSOLE,
+                   "Cannot register the service when launching from a console");
+      break;
+    default:
+      {
+        gchar *err_msg;
 
-  if (priv->notify_service_stop)
-    set_service_status (service, SERVICE_STOPPED);
+        err_msg = g_win32_error_message (priv->register_error);
+        g_set_error (error,
+                     WING_SERVICE_ERROR,
+                     WING_SERVICE_ERROR_GENERIC,
+                     "%s", err_msg);
+        g_free (err_msg);
+      }
+    }
+
+  return FALSE;
+}
+
+/**
+ * wing_service_notify_stopped:
+ * @service: a #WingService
+ *
+ * Called when the service is exiting. This is required
+ * to let the service manager know that the service is stopped.
+ */
+void
+wing_service_notify_stopped (WingService *service)
+{
+  g_return_if_fail (WING_IS_SERVICE (service));
+
+  set_service_status (service, SERVICE_STOPPED);
+}
+
+static gint
+on_handle_local_options (GApplication *application,
+                         GVariantDict *options,
+                         WingService  *service)
+{
+  WingServicePrivate *priv;
+  WingServiceManager *manager;
+  WingServiceManagerStartType start_type = WING_SERVICE_MANAGER_START_AUTO;
+  gint ret = -1;
+
+  manager = wing_service_manager_new ();
+
+  priv = wing_service_get_instance_private (service);
+
+  if (g_strcmp0 (service_start_type, "demand") == 0)
+    start_type = WING_SERVICE_MANAGER_START_DEMAND;
+  else if (g_strcmp0 (service_start_type, "disabled") == 0)
+    start_type = WING_SERVICE_MANAGER_START_DISABLED;
+
+  if (install_service)
+    ret = wing_service_manager_install_service (manager, service, start_type, NULL) ? 0 : 1;
+  else if (uninstall_service)
+    ret = wing_service_manager_uninstall_service (manager, service, NULL) ? 0 : 1;
+  else if (stop_service)
+    ret =  wing_service_manager_stop_service (manager, service, NULL) ? 0 : 1;
+  else if (exec_service_as_application)
+    /* do nothing so the application continues to run */
+    ret = -1;
+  else if (start_service || priv->from_console)
+    ret = wing_service_manager_start_service (manager, service, 0, NULL, NULL) ? 0 : 1;
+
+  g_clear_pointer (&service_start_type, g_free);
+  g_object_unref (manager);
+
+  if (ret == -1)
+    g_application_hold (application);
+
+  return ret;
+}
+
+static void
+on_service_stopped (WingService  *service,
+                    GApplication *application)
+{
+  g_application_release (application);
+  g_application_quit (application);
+}
+
+int
+wing_service_run_application (WingService   *service,
+                              GApplication  *application,
+                              int            argc,
+                              char         **argv)
+{
+  WingServicePrivate *priv;
+  GOptionGroup *option_group;
+  int status;
+  GError *error = NULL;
+
+  g_return_val_if_fail (WING_IS_SERVICE (service), 1);
+  g_return_val_if_fail (G_IS_APPLICATION (application), 1);
+
+  priv = wing_service_get_instance_private (service);
+
+  /* service options */
+  option_group = g_option_group_new ("wing",
+                                     "Windows Service Options",
+                                     "Show the Windows Service Options",
+                                     NULL, NULL);
+  g_option_group_add_entries (option_group, entries);
+  g_application_add_option_group (application, option_group);
+
+  g_signal_connect (application,
+                    "handle-local-options",
+                    G_CALLBACK (on_handle_local_options),
+                    service);
+
+  if (!wing_service_register (service, &error))
+    {
+      if (g_error_matches (error, WING_SERVICE_ERROR, WING_SERVICE_ERROR_FROM_CONSOLE))
+        priv->from_console = TRUE;
+      else
+        {
+          g_warning ("Could not register the service: %s",
+                     error->message);
+          g_error_free (error);
+          return 1;
+        }
+    }
+
+  g_signal_connect (service,
+                    "stop",
+                    G_CALLBACK (on_service_stopped),
+                    application);
+
+  status = g_application_run (application, argc, argv);
+  wing_service_notify_stopped (service);
 
   return status;
 }

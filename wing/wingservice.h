@@ -70,14 +70,30 @@ typedef enum
   WING_SERVICE_IS_INTERACTIVE   = 1 << 3
 } WingServiceFlags;
 
+/**
+ * WingServiceErrorEnum:
+ * @WING_SERVICE_ERROR_GENERIC_ERROR: a generic error
+ * @WING_SERVICE_ERROR_FROM_CONSOLE: emitted if trying to register the service from a console
+ *
+ * The errors emitted by the service.
+ */
+typedef enum
+{
+  WING_SERVICE_ERROR_GENERIC,
+  WING_SERVICE_ERROR_FROM_CONSOLE
+} WingServiceErrorEnum;
+
+#define WING_SERVICE_ERROR (wing_service_error_quark())
+WING_AVAILABLE_IN_ALL
+GQuark                 wing_service_error_quark     (void);
+
 WING_AVAILABLE_IN_ALL
 GType                  wing_service_get_type        (void) G_GNUC_CONST;
 
 WING_AVAILABLE_IN_ALL
 WingService           *wing_service_new             (const gchar      *name,
                                                      const gchar      *description,
-                                                     WingServiceFlags  flags,
-                                                     GApplication     *application);
+                                                     WingServiceFlags  flags);
 
 WING_AVAILABLE_IN_ALL
 WingService           *wing_service_get_default     (void);
@@ -95,9 +111,17 @@ WING_AVAILABLE_IN_ALL
 WingServiceFlags       wing_service_get_flags       (WingService *service);
 
 WING_AVAILABLE_IN_ALL
-int                    wing_service_run             (WingService  *service,
-                                                     int           argc,
-                                                     char        **argv);
+int                    wing_service_register        (WingService  *service,
+                                                     GError      **error);
+
+WING_AVAILABLE_IN_ALL
+void                   wing_service_notify_stopped  (WingService *service);
+
+WING_AVAILABLE_IN_ALL
+int                    wing_service_run_application       (WingService    *service,
+                                                           GApplication   *application,
+                                                           int             argc,
+                                                           char          **argv);
 
 G_END_DECLS
 
