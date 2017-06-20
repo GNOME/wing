@@ -298,13 +298,6 @@ wing_service_constructed (GObject *object)
   g_option_group_add_entries (option_group, entries);
   g_application_add_option_group (priv->application, option_group);
 
-  /* HACK to avoid reaching the default handler. It seems that the default
-   * handler return value will always gain over our one on the signal connection.
-   * Since we want to give priority to our one we set the default one to NULL.
-   * This is though a bug in GApplication and we should remove this once it is fixed.
-   * See https://bugzilla.gnome.org/show_bug.cgi?id=750796
-   */
-  G_APPLICATION_GET_CLASS (priv->application)->handle_local_options = NULL;
   g_signal_connect (priv->application,
                     "handle-local-options",
                     G_CALLBACK (on_handle_local_options),
