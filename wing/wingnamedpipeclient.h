@@ -15,8 +15,8 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __WING_NAMED_PIPE_CLIENT_H__
-#define __WING_NAMED_PIPE_CLIENT_H__
+#ifndef WING_NAMED_PIPE_CLIENT_H
+#define WING_NAMED_PIPE_CLIENT_H
 
 #include <gio/gio.h>
 #include <wing/wingnamedpipeconnection.h>
@@ -74,4 +74,4 @@ WingNamedPipeConnection  *wing_named_pipe_client_connect_finish   (WingNamedPipe
 
 G_END_DECLS
 
-#endif /* __WING_NAMED_PIPE_CLIENT_H__ */
+#endif /* WING_NAMED_PIPE_CLIENT_H */

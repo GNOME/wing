@@ -17,8 +17,8 @@
  * Authors: Ignacio Casal Quinteiro <ignacio.casal@nice-software.com>
  */
 
-#ifndef __WING_H__
-#define __WING_H__
+#ifndef WING_H
+#define WING_H
 
 #include <wing/wingversionmacros.h>
 #include <wing/wingeventwindow.h>
@@ -30,4 +30,4 @@
 #include <wing/wingsource.h>
 #include <wing/wingutils.h>
 
-#endif /* __WING_H__ */
+#endif /* WING_H */

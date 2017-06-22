@@ -17,8 +17,8 @@
  * Authors: Ignacio Casal Quinteiro <ignacio.casal@nice-software.com>
  */
 
-#ifndef __WING_NAMED_PIPE_CONNECTION_H__
-#define __WING_NAMED_PIPE_CONNECTION_H__
+#ifndef WING_NAMED_PIPE_CONNECTION_H
+#define WING_NAMED_PIPE_CONNECTION_H
 
 #include <gio/gio.h>
 #include <wing/wingversionmacros.h>
@@ -39,4 +39,4 @@ const gchar                  *wing_named_pipe_connection_get_pipe_name    (WingN
 
 G_END_DECLS
 
-#endif /* __WING_NAMED_PIPE_CONNECTION_H__ */
+#endif /* WING_NAMED_PIPE_CONNECTION_H */

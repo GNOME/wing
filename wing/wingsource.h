@@ -15,8 +15,8 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __WING_SOURCE_H__
-#define __WING_SOURCE_H__
+#ifndef WING_SOURCE_H
+#define WING_SOURCE_H
 
 #include <gio/gio.h>
 
@@ -35,4 +35,4 @@ GSource *wing_create_source (HANDLE        handle,
 
 G_END_DECLS
 
-#endif /* __WING_SOURCE_H__ */
+#endif /* WING_SOURCE_H */
