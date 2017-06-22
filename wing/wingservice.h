@@ -118,10 +118,10 @@ WING_AVAILABLE_IN_ALL
 void                   wing_service_notify_stopped  (WingService *service);
 
 WING_AVAILABLE_IN_ALL
-int                    wing_service_run_application       (WingService    *service,
-                                                           GApplication   *application,
-                                                           int             argc,
-                                                           char          **argv);
+int                    wing_service_run_application (WingService    *service,
+                                                     GApplication   *application,
+                                                     int             argc,
+                                                     char          **argv);
 
 G_END_DECLS
 
