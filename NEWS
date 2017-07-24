@@ -1,3 +1,8 @@
+News in 0.0.8
+-------------
+* Decouple GApplication from the service creation
+* Misc bug fixes
+
 News in 0.0.6
 -------------
 * Fix overflow getting monotonic time
