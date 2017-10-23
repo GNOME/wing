@@ -74,13 +74,15 @@ typedef enum
  * WingServiceErrorEnum:
  * @WING_SERVICE_ERROR_GENERIC_ERROR: a generic error
  * @WING_SERVICE_ERROR_FROM_CONSOLE: emitted if trying to register the service from a console
+ * @WING_SERVICE_ERROR_SERVICE_STOP_TIMEOUT: emitted if the stop of the service took more than 2 seconds
  *
  * The errors emitted by the service.
  */
 typedef enum
 {
   WING_SERVICE_ERROR_GENERIC,
-  WING_SERVICE_ERROR_FROM_CONSOLE
+  WING_SERVICE_ERROR_FROM_CONSOLE,
+  WING_SERVICE_ERROR_SERVICE_STOP_TIMEOUT
 } WingServiceErrorEnum;
 
 #define WING_SERVICE_ERROR (wing_service_error_quark())

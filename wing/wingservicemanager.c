@@ -370,10 +370,27 @@ wing_service_manager_stop_service (WingServiceManager  *manager,
               g_usleep (200);
 
               if (!QueryServiceStatus (service_handle, &status))
-                break;
+                {
+                  int errsv = GetLastError ();
+                  gchar *emsg = g_win32_error_message (errsv);
+
+                  g_set_error (error, G_IO_ERROR,
+                               g_io_error_from_win32_error (errsv),
+                               emsg);
+                  g_free (emsg);
+
+                  break;
+                }
 
               stopped = status.dwCurrentState == SERVICE_STOPPED;
               i++;
+            }
+
+          if (!stopped && *error == NULL)
+            {
+              g_set_error (error, G_IO_ERROR,
+                           WING_SERVICE_ERROR_SERVICE_STOP_TIMEOUT,
+                           "Stopping the server took more than 2 seconds");
             }
 
           result = stopped;
