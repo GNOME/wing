@@ -77,6 +77,7 @@ static gboolean uninstall_service;
 static gchar *service_start_type;
 static gboolean start_service;
 static gboolean stop_service;
+static gint service_stop_timeout = 5;
 static gboolean exec_service_as_application;
 static const GOptionEntry entries[] =
 {
@@ -89,6 +90,8 @@ static const GOptionEntry entries[] =
     "auto|demand|disabled" },
   { "start", '\0', 0, G_OPTION_ARG_NONE, &start_service,
     "Starts the service using the Windows service manager" },
+  { "stop-timeout", '\0', 0, G_OPTION_ARG_INT, &service_stop_timeout,
+    "Time in seconds to wait for the service to be stopped" },
   { "stop", '\0', 0, G_OPTION_ARG_NONE, &stop_service,
     "Stops the service using the Windows service manager" },
   { "exec", '\0', 0, G_OPTION_ARG_NONE, &exec_service_as_application,
@@ -692,6 +695,7 @@ on_handle_local_options (GApplication *application,
   WingServicePrivate *priv;
   WingServiceManager *manager;
   WingServiceManagerStartType start_type = WING_SERVICE_MANAGER_START_AUTO;
+  guint stop_timeout = 5;
   gint ret = -1;
 
   manager = wing_service_manager_new ();
@@ -703,12 +707,15 @@ on_handle_local_options (GApplication *application,
   else if (g_strcmp0 (service_start_type, "disabled") == 0)
     start_type = WING_SERVICE_MANAGER_START_DISABLED;
 
+  if (service_stop_timeout >= 0)
+    stop_timeout = service_stop_timeout;
+
   if (install_service)
     ret = wing_service_manager_install_service (manager, service, start_type, NULL) ? 0 : 1;
   else if (uninstall_service)
     ret = wing_service_manager_uninstall_service (manager, service, NULL) ? 0 : 1;
   else if (stop_service)
-    ret =  wing_service_manager_stop_service (manager, service, NULL) ? 0 : 1;
+    ret =  wing_service_manager_stop_service (manager, service, stop_timeout, NULL) ? 0 : 1;
   else if (exec_service_as_application)
     /* do nothing so the application continues to run */
     ret = -1;

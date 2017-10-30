@@ -21,6 +21,8 @@
 #include <gio/gio.h>
 #include <Windows.h>
 
+#define STOP_SERVICE_NUMBERS_OF_CHECKS_PER_SEC 10
+
 struct _WingServiceManager
 {
   GObject parent_instance;
@@ -338,6 +340,7 @@ wing_service_manager_start_service (WingServiceManager  *manager,
 gboolean
 wing_service_manager_stop_service (WingServiceManager  *manager,
                                    WingService         *service,
+                                   guint                timeout_in_sec,
                                    GError             **error)
 {
   SC_HANDLE sc;
@@ -362,12 +365,13 @@ wing_service_manager_stop_service (WingServiceManager  *manager,
       if (ControlService (service_handle, SERVICE_CONTROL_STOP, &status))
         {
           gboolean stopped = status.dwCurrentState == SERVICE_STOPPED;
-          gint i = 0;
+          guint timeout_value = timeout_in_sec * STOP_SERVICE_NUMBERS_OF_CHECKS_PER_SEC;
+          guint i = 0;
 
           /* It may take some time to get a response that the service was stopped */
-          while (!stopped && i < 10)
+          while (!stopped && i < timeout_value)
             {
-              g_usleep (200);
+              g_usleep (G_USEC_PER_SEC / STOP_SERVICE_NUMBERS_OF_CHECKS_PER_SEC);
 
               if (!QueryServiceStatus (service_handle, &status))
                 {
@@ -390,7 +394,9 @@ wing_service_manager_stop_service (WingServiceManager  *manager,
             {
               g_set_error (error, G_IO_ERROR,
                            WING_SERVICE_ERROR_SERVICE_STOP_TIMEOUT,
-                           "Stopping the server took more than 2 seconds");
+                           "Stopping the service took more than %d %s",
+                           timeout,
+                           timeout == 1 ? "second" : "seconds");
             }
 
           result = stopped;

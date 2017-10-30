@@ -73,6 +73,7 @@ gboolean                wing_service_manager_start_service            (WingServi
 WING_AVAILABLE_IN_ALL
 gboolean                wing_service_manager_stop_service             (WingServiceManager           *manager,
                                                                        WingService                  *service,
+                                                                       guint                         timeout_in_sec,
                                                                        GError                      **error);
 
 G_END_DECLS
