@@ -395,8 +395,8 @@ wing_service_manager_stop_service (WingServiceManager  *manager,
               g_set_error (error, G_IO_ERROR,
                            WING_SERVICE_ERROR_SERVICE_STOP_TIMEOUT,
                            "Stopping the service took more than %d %s",
-                           timeout,
-                           timeout == 1 ? "second" : "seconds");
+                           timeout_in_sec,
+                           timeout_in_sec == 1 ? "second" : "seconds");
             }
 
           result = stopped;
