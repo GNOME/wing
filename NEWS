@@ -1,3 +1,8 @@
+News in 0.0.12
+--------------
+* Add timeout parameter to stop_service method
+* Improve build system
+
 News in 0.0.10
 --------------
 * Always set an error when stopping the service fails
