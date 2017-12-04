@@ -33,16 +33,12 @@
  * @see_also: #GIOStream
  *
  * WingNamedPipeConnection creates a #GIOStream from an arbitrary handle.
- *
- * Since: 2.48
  */
 
 /**
  * WingNamedPipeConnection:
  *
  * A wrapper around a Windows pipe handle.
- *
- * Since: 2.48
  */
 struct _WingNamedPipeConnection
 {
@@ -202,8 +198,6 @@ wing_named_pipe_connection_class_init (WingNamedPipeConnectionClass *class)
    * WingNamedPipeConnection:handle:
    *
    * The handle for the connection.
-   *
-   * Since: 2.48
    */
   g_object_class_install_property (gobject_class,
                                    PROP_HANDLE,
@@ -219,8 +213,6 @@ wing_named_pipe_connection_class_init (WingNamedPipeConnectionClass *class)
    * WingNamedPipeConnection:close-handle:
    *
    * Whether to close the file handle when the pipe connection is disposed.
-   *
-   * Since: 2.48
    */
   g_object_class_install_property (gobject_class,
                                    PROP_CLOSE_HANDLE,

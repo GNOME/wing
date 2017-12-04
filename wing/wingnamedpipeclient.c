@@ -36,8 +36,6 @@
  *
  * As #WingNamedPipeClient is a lightweight object, you don't need to
  * cache it. You can just create a new one any time you need one.
- *
- * Since: 2.48
  */
 
 typedef struct
@@ -134,8 +132,6 @@ wing_named_pipe_client_init (WingNamedPipeClient *self)
  *
  * Returns: a #WingNamedPipeClient.
  *     Free the returned object with g_object_unref().
- *
- * Since: 2.48
  */
 WingNamedPipeClient *
 wing_named_pipe_client_new (void)
@@ -157,8 +153,6 @@ wing_named_pipe_client_new (void)
  * reference to it when finished with it.
  *
  * Returns: (transfer full): a #WingNamedPipeConnection on success, %NULL on error.
- *
- * Since: 2.48
  */
 WingNamedPipeConnection *
 wing_named_pipe_client_connect (WingNamedPipeClient  *client,
@@ -276,8 +270,6 @@ client_connect_thread (GTask        *task,
  * When the operation is finished @callback will be
  * called. You can then call wing_named_pipe_client_connect_finish() to get
  * the result of the operation.
- *
- * Since: 2.48
  */
 void
 wing_named_pipe_client_connect_async (WingNamedPipeClient  *client,
@@ -307,8 +299,6 @@ wing_named_pipe_client_connect_async (WingNamedPipeClient  *client,
  * Finishes an async connect operation. See wing_named_pipe_client_connect_async()
  *
  * Returns: (transfer full): a #WingNamedPipeConnection on success, %NULL on error.
- *
- * Since: 2.48
  */
 WingNamedPipeConnection *
 wing_named_pipe_client_connect_finish (WingNamedPipeClient  *client,

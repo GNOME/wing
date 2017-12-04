@@ -127,8 +127,6 @@ wing_named_pipe_listener_init (WingNamedPipeListener *listener)
  * Creates a new #WingNamedPipeListener.
  *
  * Returns: (transfer full): a new #WingNamedPipeListener.
- *
- * Since: 2.48
  */
 WingNamedPipeListener *
 wing_named_pipe_listener_new (void)
@@ -250,8 +248,6 @@ create_pipe_from_pipe_data (PipeData  *pipe_data,
  * different things depending on what pipe is connected to.
  *
  * Returns: %TRUE on success, %FALSE on error.
- *
- * Since: 2.48
  */
 gboolean
 wing_named_pipe_listener_add_named_pipe (WingNamedPipeListener  *listener,
@@ -476,8 +472,6 @@ find_first_connected (WingNamedPipeListener *listener)
  * was cancelled, the error %G_IO_ERROR_CANCELLED will be returned.
  *
  * Returns: (transfer full): a #WingNamedPipeConnection on success, %NULL on error.
- *
- * Since: 2.48
  */
 WingNamedPipeConnection *
 wing_named_pipe_listener_accept (WingNamedPipeListener  *listener,
@@ -569,8 +563,6 @@ wing_named_pipe_listener_accept (WingNamedPipeListener  *listener,
  * When the operation is finished @callback will be
  * called. You can then call wing_named_pipe_listener_accept_finish()
  * to get the result of the operation.
- *
- * Since: 2.48
  */
 void
 wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
@@ -634,8 +626,6 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
  * Finishes an async accept operation. See wing_named_pipe_listener_accept_async()
  *
  * Returns: (transfer full): a #WingNamedPipeConnection on success, %NULL on error.
- *
- * Since: 2.48
  */
 WingNamedPipeConnection *
 wing_named_pipe_listener_accept_finish (WingNamedPipeListener  *listener,
