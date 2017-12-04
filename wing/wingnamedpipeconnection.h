@@ -22,6 +22,7 @@
 
 #include <gio/gio.h>
 #include <wing/wingversionmacros.h>
+#include <wing/wingcredentials.h>
 
 G_BEGIN_DECLS
 
@@ -32,11 +33,14 @@ G_BEGIN_DECLS
 typedef struct _WingNamedPipeConnection WingNamedPipeConnection;
 
 WING_AVAILABLE_IN_ALL
-GType                         wing_named_pipe_connection_get_type         (void) G_GNUC_CONST;
+GType                         wing_named_pipe_connection_get_type                (void) G_GNUC_CONST;
 
 WING_AVAILABLE_IN_ALL
-const gchar                  *wing_named_pipe_connection_get_pipe_name    (WingNamedPipeConnection *connection);
+const gchar                  *wing_named_pipe_connection_get_pipe_name           (WingNamedPipeConnection  *connection);
 
+WING_AVAILABLE_IN_ALL
+WingCredentials              *wing_named_pipe_connection_get_credentials         (WingNamedPipeConnection  *connection,
+                                                                                  GError                  **error);
 G_END_DECLS
 
 #endif /* WING_NAMED_PIPE_CONNECTION_H */

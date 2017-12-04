@@ -25,6 +25,7 @@
 #include <gio/gwin32outputstream.h>
 
 #include <windows.h>
+#include <Sddl.h>
 
 /**
  * SECTION:wingnamedpipeconnection
@@ -236,4 +237,233 @@ wing_named_pipe_connection_get_pipe_name (WingNamedPipeConnection *connection)
   g_return_val_if_fail (WING_IS_NAMED_PIPE_CONNECTION (connection), NULL);
 
   return connection->pipe_name;
+}
+
+static gulong
+get_client_process_id (WingNamedPipeConnection  *connection,
+                       GError                  **error)
+{
+  gulong process_id;
+
+  g_return_val_if_fail (WING_IS_NAMED_PIPE_CONNECTION (connection), 0);
+
+  if (!GetNamedPipeClientProcessId ((HANDLE)connection->handle, &process_id))
+    {
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
+
+      g_set_error (error,
+                   G_IO_ERROR,
+                   g_io_error_from_win32_error (errsv),
+                   "Could not get client process id: %s",
+                   emsg);
+      g_free (emsg);
+
+      return 0;
+    }
+
+  return process_id;
+}
+
+static gchar *
+get_sid_from_token (HANDLE   token,
+                    GError **error)
+{
+  TOKEN_USER *user_info = NULL;
+  DWORD user_info_length = 0;
+  wchar_t *sid_string;
+  gchar *sid_utf8;
+
+  if (GetTokenInformation (token,
+                           TokenUser,
+                           user_info,
+                           user_info_length,
+                           &user_info_length) == FALSE)
+    {
+      int errsv = GetLastError ();
+
+      if (errsv != ERROR_INSUFFICIENT_BUFFER)
+        {
+          gchar *emsg = g_win32_error_message (errsv);
+
+          g_set_error (error,
+                       G_IO_ERROR,
+                       g_io_error_from_win32_error (errsv),
+                       "Could not get the token information: %s",
+                       emsg);
+          g_free (emsg);
+
+          return NULL;
+        }
+    }
+  else
+    {
+      g_assert_not_reached ();
+    }
+
+  user_info = (TOKEN_USER *)g_malloc (user_info_length);
+
+  if (GetTokenInformation (token,
+                           TokenUser,
+                           user_info,
+                           user_info_length,
+                           &user_info_length) == FALSE)
+    {
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
+
+      g_set_error (error,
+                   G_IO_ERROR,
+                   g_io_error_from_win32_error (errsv),
+                   "Could not get the token information: %s",
+                   emsg);
+      g_free (emsg);
+
+      g_free (user_info);
+
+      return NULL;
+    }
+
+  if (ConvertSidToStringSidW (user_info->User.Sid, &sid_string) == FALSE)
+    {
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
+
+      g_set_error (error,
+                   G_IO_ERROR,
+                   g_io_error_from_win32_error (errsv),
+                   "Could not convert Sid to string: %s",
+                   emsg);
+      g_free (emsg);
+
+      g_free (user_info);
+
+      return NULL;
+    }
+
+  g_free (user_info);
+
+  sid_utf8 = g_utf16_to_utf8 ((gunichar2 *)sid_string, -1, NULL, NULL, NULL);
+  LocalFree (sid_string);
+
+  return sid_utf8;
+}
+
+static gchar *
+get_user_id (WingNamedPipeConnection   *connection,
+             GError                   **error)
+{
+  HANDLE  token;
+  gchar  *sid;
+
+  if (ImpersonateNamedPipeClient (connection->handle) == FALSE)
+    {
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
+
+      g_set_error (error,
+                   G_IO_ERROR,
+                   g_io_error_from_win32_error (errsv),
+                   "Could not impersonate the client: %s",
+                   emsg);
+      g_free (emsg);
+
+      return NULL;
+    }
+
+  if (OpenThreadToken (GetCurrentThread (), TOKEN_QUERY, FALSE, &token) == FALSE)
+    {
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
+
+      g_set_error (error,
+                   G_IO_ERROR,
+                   g_io_error_from_win32_error (errsv),
+                   "Could not get the thread's token: %s",
+                   emsg);
+      g_free (emsg);
+
+      if (RevertToSelf () == FALSE)
+        {
+          errsv = GetLastError ();
+          emsg = g_win32_error_message (errsv);
+
+          /*
+           * If we reach this point, it is better to abort the execution,
+           * because otherwise it will continue in the context of the client,
+           * which is not appropriate
+           */
+          g_error ("Failed to terminate the impersonation of the client: %s (%d)",
+                   emsg,
+                   errsv);
+        }
+
+      return NULL;
+    }
+
+  sid = get_sid_from_token (token, error);
+  CloseHandle (token);
+
+  if (RevertToSelf () == FALSE)
+    {
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
+
+      /*
+       * If we reach this point, it is better to abort the execution,
+       * because otherwise it will continue in the context of the client,
+       * which is not appropriate
+       */
+      g_error ("Failed to terminate the impersonation of the client: %s (%d)",
+               emsg,
+               errsv);
+    }
+
+  return sid;
+}
+
+/**
+ * wing_named_pipe_connection_get_credentials():
+ * @connection: a #WingNamedPipeConnection.
+ * @error: a #GError location to store the error occurring, or %NULL to
+ * ignore.
+ *
+ * Retrieves the WingCredentials of the pipe's client
+ *
+ * Returns: (transfer full): a #WingCredentials on success, %NULL on error.
+ */
+WingCredentials *
+wing_named_pipe_connection_get_credentials (WingNamedPipeConnection  *connection,
+                                            GError                  **error)
+{
+  WingCredentials *credentials;
+  gulong pid;
+  gchar *sid;
+
+  g_return_val_if_fail (WING_IS_NAMED_PIPE_CONNECTION (connection), NULL);
+  g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
+  if (connection->handle == NULL || connection->handle == INVALID_HANDLE_VALUE)
+    {
+      g_set_error_literal (error,
+                           G_IO_ERROR,
+                           G_IO_ERROR_INVALID_ARGUMENT,
+                           "Pipe's handle is NULL or invalid");
+
+      return FALSE;
+    }
+
+  pid = get_client_process_id (connection, error);
+  if (pid == 0)
+    return NULL;
+
+  sid = get_user_id (connection, error);
+  if (sid == NULL)
+    return NULL;
+
+  credentials = wing_credentials_new (pid, sid);
+
+  g_free (sid);
+
+  return credentials;
 }
