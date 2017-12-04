@@ -29,5 +29,6 @@
 #include <wing/wingservicemanager.h>
 #include <wing/wingsource.h>
 #include <wing/wingutils.h>
+#include <wing/wingcredentials.h>
 
 #endif /* WING_H */
