@@ -174,7 +174,8 @@ create_pipe_from_pipe_data (PipeData  *pipe_data,
                                         FILE_FLAG_OVERLAPPED,
                                         PIPE_TYPE_BYTE |
                                         PIPE_READMODE_BYTE |
-                                        PIPE_WAIT,
+                                        PIPE_WAIT |
+                                        PIPE_REJECT_REMOTE_CLIENTS,
                                         PIPE_UNLIMITED_INSTANCES,
                                         DEFAULT_PIPE_BUF_SIZE,
                                         DEFAULT_PIPE_BUF_SIZE,
