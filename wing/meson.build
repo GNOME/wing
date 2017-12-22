@@ -12,10 +12,6 @@ headers = [
   'wingutils.h',
 ]
 
-private_headers = [
-  'wing-init.h',
-]
-
 sources = [
   'wingcredentials.c',
   'wingeventwindow.c',

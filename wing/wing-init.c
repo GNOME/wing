@@ -15,7 +15,6 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "wing-init.h"
 #include <windows.h>
 
 BOOL WINAPI DllMain (HINSTANCE hinstDLL,
@@ -33,7 +32,6 @@ DllMain (HINSTANCE hinstDLL,
     {
     case DLL_PROCESS_ATTACH:
       wing_dll = hinstDLL;
-      wing_init_monotonic_time ();
       break;
     default:
       /* do nothing */
