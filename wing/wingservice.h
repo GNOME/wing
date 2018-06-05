@@ -43,12 +43,13 @@ struct _WingServiceClass
 {
   GObjectClass parent_class;
 
-  void (*start)   (WingService *service);
-  void (*stop)    (WingService *service);
-  void (*pause)   (WingService *service);
-  void (*resume)  (WingService *service);
+  void (*start)           (WingService *service);
+  void (*stop)            (WingService *service);
+  void (*pause)           (WingService *service);
+  void (*resume)          (WingService *service);
+  void (*session_change)  (WingService *service);
 
-  gpointer reserved[12];
+  gpointer reserved[11];
 };
 
 /**
@@ -58,16 +59,18 @@ struct _WingServiceClass
  * @WING_SERVICE_CAN_BE_STOPPED: whether the service can be stopped.
  * @WING_SERVICE_STOP_ON_SHUTDOWN: whether to stop the service on shutdown.
  * @WING_SERVICE_IS_INTERACTIVE: whether service can interact with the desktop.
+ * @WING_SERVICE_SESSIONCHANGE: whether service can receive the SESSION_CHANGE events.
  *
  * The flags for the service.
  */
 typedef enum
 {
-  WING_SERVICE_NONE             = 0,
-  WING_SERVICE_CAN_BE_SUSPENDED = 1 << 0,
-  WING_SERVICE_CAN_BE_STOPPED   = 1 << 1,
-  WING_SERVICE_STOP_ON_SHUTDOWN = 1 << 2,
-  WING_SERVICE_IS_INTERACTIVE   = 1 << 3
+  WING_SERVICE_NONE                         = 0,
+  WING_SERVICE_CAN_BE_SUSPENDED             = 1 << 0,
+  WING_SERVICE_CAN_BE_STOPPED               = 1 << 1,
+  WING_SERVICE_STOP_ON_SHUTDOWN             = 1 << 2,
+  WING_SERVICE_IS_INTERACTIVE               = 1 << 3,
+  WING_SERVICE_SESSION_CHANGE_NOTIFICATIONS = 1 << 4
 } WingServiceFlags;
 
 /**

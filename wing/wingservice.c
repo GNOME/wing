@@ -20,6 +20,7 @@
 #include "wingservicemanager.h"
 
 #include <Windows.h>
+#include <Winuser.h>
 
 #define WING_SERVICE_STARTUP 256
 
@@ -46,6 +47,8 @@ typedef struct
 {
   WingService *service;
   DWORD control;
+  DWORD event_type;
+  LPVOID event_data;
 } IdleEventData;
 
 enum
@@ -64,6 +67,7 @@ enum
   STOP,
   PAUSE,
   RESUME,
+  SESSION_CHANGE,
   LAST_SIGNAL
 };
 
@@ -104,6 +108,7 @@ free_idle_event_data (gpointer user_data)
 {
   IdleEventData *data = (IdleEventData *)user_data;
 
+  g_free(data->event_data);
   g_slice_free (IdleEventData, data);
 }
 
@@ -205,6 +210,9 @@ service_flags (WingService *service)
 
   if (priv->flags & WING_SERVICE_STOP_ON_SHUTDOWN)
     control |= SERVICE_ACCEPT_SHUTDOWN;
+
+  if (priv->flags & WING_SERVICE_SESSION_CHANGE_NOTIFICATIONS)
+    control |= SERVICE_ACCEPT_SESSIONCHANGE;
 
   return control;
 }
@@ -308,6 +316,18 @@ wing_service_class_init (WingServiceClass *klass)
                     g_cclosure_marshal_VOID__VOID,
                     G_TYPE_NONE,
                     0);
+
+  signals[SESSION_CHANGE] =
+      g_signal_new ("session-change",
+                    G_OBJECT_CLASS_TYPE (object_class),
+                    G_SIGNAL_RUN_LAST,
+                    G_STRUCT_OFFSET (WingServiceClass, session_change),
+                    NULL, NULL,
+                    g_cclosure_marshal_VOID__UINT_POINTER,
+                    G_TYPE_NONE,
+                    2,
+                    G_TYPE_UINT,
+                    G_TYPE_POINTER);
 }
 
 static void
@@ -479,6 +499,9 @@ on_control_handler_idle (gpointer user_data)
     case SERVICE_CONTROL_CONTINUE:
       g_signal_emit (G_OBJECT (service), signals[RESUME], 0);
       break;
+    case SERVICE_CONTROL_SESSIONCHANGE:
+      g_signal_emit (G_OBJECT (service), signals[SESSION_CHANGE], 0, data->event_type, data->event_data);
+      break;
     }
 
   g_cond_signal (&priv->control_cond);
@@ -486,22 +509,28 @@ on_control_handler_idle (gpointer user_data)
   return G_SOURCE_REMOVE;
 }
 
-static void WINAPI
-control_handler (DWORD control)
+static DWORD WINAPI
+control_handler (DWORD  control,
+                 DWORD  event_type,
+                 LPVOID event_data,
+                 LPVOID context)
 {
   WingService *service;
   WingServicePrivate *priv;
   IdleEventData *data;
+  DWORD res = NO_ERROR;
 
   service = wing_service_get_default ();
   if (service == NULL)
-    return;
+    return res;
 
   priv = wing_service_get_instance_private (service);
 
   data = g_slice_new (IdleEventData);
   data->service = service;
   data->control = control;
+  data->event_type = event_type;
+  data->event_data = NULL;
 
   g_mutex_lock (&priv->control_mutex);
 
@@ -549,15 +578,26 @@ control_handler (DWORD control)
                        data, free_idle_event_data);
       g_cond_wait (&priv->control_cond, &priv->control_mutex);
       break;
+    case SERVICE_CONTROL_SESSIONCHANGE:
+      data->event_data = g_new(WTSSESSION_NOTIFICATION, 1);
+      memcpy(data->event_data, event_data, sizeof(WTSSESSION_NOTIFICATION));
+      g_idle_add_full (G_PRIORITY_DEFAULT,
+                       on_control_handler_idle,
+                       data, free_idle_event_data);
+      g_cond_wait (&priv->control_cond, &priv->control_mutex);
+      break;
     default:
       /* XXX: do something else here? */
       g_slice_free (IdleEventData, data);
+      res = ERROR_CALL_NOT_IMPLEMENTED;
     }
 
   g_mutex_unlock (&priv->control_mutex);
 
   if (priv->status.dwCurrentState != SERVICE_STOPPED)
     SetServiceStatus (priv->status_handle, &priv->status);
+
+  return res;
 }
 
 static void WINAPI
@@ -575,9 +615,9 @@ service_main (DWORD     argc,
 
   g_cond_signal (&priv->start_cond);
 
-  priv->status_handle = RegisterServiceCtrlHandlerW (priv->namew, control_handler);
+  priv->status_handle = RegisterServiceCtrlHandlerExW (priv->namew, control_handler, NULL);
 
-  control_handler (WING_SERVICE_STARTUP);
+  control_handler (WING_SERVICE_STARTUP, 0, NULL, NULL);
 }
 
 static gpointer
