@@ -24,20 +24,9 @@
 G_BEGIN_DECLS
 
 #define WING_TYPE_SERVICE            (wing_service_get_type ())
-#define WING_SERVICE(o)              (G_TYPE_CHECK_INSTANCE_CAST ((o), WING_TYPE_SERVICE, WingService))
-#define WING_SERVICE_CLASS(k)        (G_TYPE_CHECK_CLASS_CAST ((k), WING_TYPE_SERVICE, WingServiceClass))
-#define WING_IS_SERVICE(o)           (G_TYPE_CHECK_INSTANCE_TYPE ((o), WING_TYPE_SERVICE))
-#define WING_IS_SERVICE_CLASS(k)     (G_TYPE_CHECK_CLASS_TYPE ((k),  WING_TYPE_SERVICE))
-#define WING_SERVICE_GET_CLASS(o)    (G_TYPE_INSTANCE_GET_CLASS ((o), WING_TYPE_SERVICE, WingServiceClass))
 
-typedef struct _WingService                       WingService;
-typedef struct _WingServiceClass                  WingServiceClass;
-
-struct _WingService
-{
-  /*< private >*/
-  GObject parent_instance;
-};
+WING_AVAILABLE_IN_ALL
+G_DECLARE_DERIVABLE_TYPE (WingService, wing_service, WING, SERVICE, GObject)
 
 struct _WingServiceClass
 {
@@ -91,9 +80,6 @@ typedef enum
 #define WING_SERVICE_ERROR (wing_service_error_quark())
 WING_AVAILABLE_IN_ALL
 GQuark                 wing_service_error_quark     (void);
-
-WING_AVAILABLE_IN_ALL
-GType                  wing_service_get_type        (void) G_GNUC_CONST;
 
 WING_AVAILABLE_IN_ALL
 WingService           *wing_service_new             (const gchar      *name,
