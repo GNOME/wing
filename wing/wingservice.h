@@ -37,8 +37,9 @@ struct _WingServiceClass
   void (*pause)           (WingService *service);
   void (*resume)          (WingService *service);
   void (*session_change)  (WingService *service);
+  void (*device_change)   (WingService *service);
 
-  gpointer reserved[11];
+  gpointer reserved[10];
 };
 
 /**
@@ -79,40 +80,51 @@ typedef enum
 
 #define WING_SERVICE_ERROR (wing_service_error_quark())
 WING_AVAILABLE_IN_ALL
-GQuark                 wing_service_error_quark     (void);
+GQuark                 wing_service_error_quark                     (void);
 
 WING_AVAILABLE_IN_ALL
-WingService           *wing_service_new             (const gchar      *name,
-                                                     const gchar      *description,
-                                                     WingServiceFlags  flags);
+WingService           *wing_service_new                             (const gchar      *name,
+                                                                     const gchar      *description,
+                                                                     WingServiceFlags  flags);
 
 WING_AVAILABLE_IN_ALL
-WingService           *wing_service_get_default     (void);
+WingService           *wing_service_get_default                     (void);
 
 WING_AVAILABLE_IN_ALL
-void                   wing_service_set_default     (WingService *service);
+void                   wing_service_set_default                     (WingService      *service);
 
 WING_AVAILABLE_IN_ALL
-const gchar           *wing_service_get_name        (WingService *service);
+const gchar           *wing_service_get_name                        (WingService      *service);
 
 WING_AVAILABLE_IN_ALL
-const gchar           *wing_service_get_description (WingService *service);
+const gchar           *wing_service_get_description                 (WingService      *service);
 
 WING_AVAILABLE_IN_ALL
-WingServiceFlags       wing_service_get_flags       (WingService *service);
+WingServiceFlags       wing_service_get_flags                       (WingService      *service);
 
 WING_AVAILABLE_IN_ALL
-int                    wing_service_register        (WingService  *service,
-                                                     GError      **error);
+int                    wing_service_register                        (WingService      *service,
+                                                                     GError          **error);
 
 WING_AVAILABLE_IN_ALL
-void                   wing_service_notify_stopped  (WingService *service);
+void                   wing_service_notify_stopped                  (WingService      *service);
 
 WING_AVAILABLE_IN_ALL
-int                    wing_service_run_application (WingService    *service,
-                                                     GApplication   *application,
-                                                     int             argc,
-                                                     char          **argv);
+int                    wing_service_run_application                 (WingService      *service,
+                                                                     GApplication     *application,
+                                                                     int               argc,
+                                                                     char            **argv);
+
+WING_AVAILABLE_IN_ALL
+gpointer               wing_service_register_device_notification    (WingService      *service,
+                                                                     gpointer          filter,
+                                                                     gboolean          notify_all_interface_classes,
+                                                                     GError          **error);
+
+WING_AVAILABLE_IN_ALL
+gboolean               wing_service_unregister_device_notification  (WingService      *service,
+                                                                     gpointer          handle,
+                                                                     GError          **error);
 
 G_END_DECLS
 

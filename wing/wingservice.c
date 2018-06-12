@@ -21,6 +21,7 @@
 
 #include <Windows.h>
 #include <Winuser.h>
+#include <dbt.h>
 
 #define WING_SERVICE_STARTUP 256
 
@@ -68,6 +69,7 @@ enum
   PAUSE,
   RESUME,
   SESSION_CHANGE,
+  DEVICE_CHANGE,
   LAST_SIGNAL
 };
 
@@ -328,6 +330,18 @@ wing_service_class_init (WingServiceClass *klass)
                     2,
                     G_TYPE_UINT,
                     G_TYPE_POINTER);
+
+  signals[DEVICE_CHANGE] =
+      g_signal_new ("device-change",
+                    G_OBJECT_CLASS_TYPE (object_class),
+                    G_SIGNAL_RUN_LAST,
+                    G_STRUCT_OFFSET (WingServiceClass, device_change),
+                    NULL, NULL,
+                    g_cclosure_marshal_VOID__UINT_POINTER,
+                    G_TYPE_NONE,
+                    2,
+                    G_TYPE_UINT,
+                    G_TYPE_POINTER);
 }
 
 static void
@@ -506,6 +520,9 @@ on_control_handler_idle (gpointer user_data)
     case SERVICE_CONTROL_SESSIONCHANGE:
       g_signal_emit (G_OBJECT (service), signals[SESSION_CHANGE], 0, data->event_type, data->event_data);
       break;
+    case SERVICE_CONTROL_DEVICEEVENT:
+      g_signal_emit (G_OBJECT (service), signals[DEVICE_CHANGE], 0, data->event_type, data->event_data);
+      break;
     }
 
   return G_SOURCE_REMOVE;
@@ -583,6 +600,26 @@ control_handler (DWORD  control,
     case SERVICE_CONTROL_SESSIONCHANGE:
       data->event_data = g_new(WTSSESSION_NOTIFICATION, 1);
       memcpy(data->event_data, event_data, sizeof(WTSSESSION_NOTIFICATION));
+      g_idle_add_full (G_PRIORITY_DEFAULT,
+                       on_control_handler_idle,
+                       data, free_idle_event_data);
+      break;
+    case SERVICE_CONTROL_DEVICEEVENT:
+      switch(event_type)
+        {
+        case DBT_CUSTOMEVENT:
+        case DBT_DEVICEARRIVAL:
+        case DBT_DEVICEQUERYREMOVE:
+        case DBT_DEVICEQUERYREMOVEFAILED:
+        case DBT_DEVICEREMOVECOMPLETE:
+        case DBT_DEVICEREMOVEPENDING:
+        case DBT_DEVICETYPESPECIFIC:
+        case DBT_USERDEFINED:
+          data->event_data = g_malloc(((DEV_BROADCAST_HDR *)event_data)->dbch_size);
+          memcpy(data->event_data, event_data, ((DEV_BROADCAST_HDR *)event_data)->dbch_size);
+          break;
+        }
+
       g_idle_add_full (G_PRIORITY_DEFAULT,
                        on_control_handler_idle,
                        data, free_idle_event_data);
@@ -831,4 +868,60 @@ wing_service_run_application (WingService   *service,
   wing_service_notify_stopped (service);
 
   return status;
+}
+
+gpointer
+wing_service_register_device_notification (WingService  *service,
+                                           gpointer      filter,
+                                           gboolean      notify_all_interface_classes,
+                                           GError      **error)
+{
+  WingServicePrivate *priv;
+  HDEVNOTIFY handle;
+
+  g_return_val_if_fail (WING_IS_SERVICE (service), NULL);
+
+  priv = wing_service_get_instance_private (service);
+
+  handle = RegisterDeviceNotification (priv->status_handle,
+                                       filter,
+                                       DEVICE_NOTIFY_SERVICE_HANDLE | (notify_all_interface_classes ? DEVICE_NOTIFY_ALL_INTERFACE_CLASSES : 0));
+  if (handle == NULL)
+    {
+      gchar *err_msg;
+
+      err_msg = g_win32_error_message (GetLastError());
+      g_set_error (error,
+                   WING_SERVICE_ERROR,
+                   WING_SERVICE_ERROR_GENERIC,
+                   "%s", err_msg);
+      g_free (err_msg);
+    }
+
+  return handle;
+}
+
+gboolean
+wing_service_unregister_device_notification (WingService  *service,
+                                             gpointer      handle,
+                                             GError      **error)
+{
+  gboolean result;
+
+  g_return_val_if_fail (WING_IS_SERVICE (service), FALSE);
+
+  result = UnregisterDeviceNotification ((HDEVNOTIFY)handle);
+  if (!result)
+    {
+      gchar *err_msg;
+
+      err_msg = g_win32_error_message (GetLastError());
+      g_set_error (error,
+                   WING_SERVICE_ERROR,
+                   WING_SERVICE_ERROR_GENERIC,
+                   "%s", err_msg);
+      g_free (err_msg);
+    }
+
+  return result;
 }
