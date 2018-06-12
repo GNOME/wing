@@ -1,3 +1,7 @@
+News in 0.0.18
+--------------
+* Added support for device change notifications
+
 News in 0.0.16
 --------------
 * Added support for session change notifications
