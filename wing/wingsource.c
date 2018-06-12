@@ -48,7 +48,7 @@ wing_source_dispatch (GSource     *source,
   WingSourceFunc func = (WingSourceFunc)callback;
   WingSource *hsource = (WingSource *)source;
 
-  return func (hsource->pollfd.fd, user_data);
+  return func ((HANDLE)hsource->pollfd.fd, user_data);
 }
 
 static void
@@ -129,7 +129,11 @@ wing_create_source (HANDLE        handle,
       g_source_unref (cancellable_source);
     }
 
+#if GLIB_SIZEOF_VOID_P == 8
+  hsource->pollfd.fd = (gint64)handle;
+#else
   hsource->pollfd.fd = (gint)handle;
+#endif
   hsource->pollfd.events = condition;
   hsource->pollfd.revents = 0;
   g_source_add_poll (source, &hsource->pollfd);
