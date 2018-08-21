@@ -1,3 +1,7 @@
+News in 0.0.20
+--------------
+* Added support for read-only/write-only pipes
+
 News in 0.0.18
 --------------
 * Added support for device change notifications
