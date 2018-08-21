@@ -48,6 +48,12 @@ struct _WingNamedPipeClientClass
   gpointer padding[10];
 };
 
+typedef enum
+{
+  WING_NAMED_PIPE_CLIENT_GENERIC_READ  = (1 << 0),
+  WING_NAMED_PIPE_CLIENT_GENERIC_WRITE = (1 << 1)
+} WingNamedPipeClientFlags;
+
 WING_AVAILABLE_IN_ALL
 GType                     wing_named_pipe_client_get_type         (void) G_GNUC_CONST;
 
@@ -55,22 +61,24 @@ WING_AVAILABLE_IN_ALL
 WingNamedPipeClient      *wing_named_pipe_client_new              (void);
 
 WING_AVAILABLE_IN_ALL
-WingNamedPipeConnection  *wing_named_pipe_client_connect          (WingNamedPipeClient  *client,
-                                                                   const gchar          *pipe_name,
-                                                                   GCancellable         *cancellable,
-                                                                   GError              **error);
+WingNamedPipeConnection  *wing_named_pipe_client_connect          (WingNamedPipeClient      *client,
+                                                                   const gchar              *pipe_name,
+                                                                   WingNamedPipeClientFlags  flags,
+                                                                   GCancellable             *cancellable,
+                                                                   GError                   **error);
 
 WING_AVAILABLE_IN_ALL
-void                      wing_named_pipe_client_connect_async    (WingNamedPipeClient  *client,
-                                                                   const gchar          *pipe_name,
-                                                                   GCancellable         *cancellable,
-                                                                   GAsyncReadyCallback   callback,
-                                                                   gpointer              user_data);
+void                      wing_named_pipe_client_connect_async    (WingNamedPipeClient      *client,
+                                                                   const gchar              *pipe_name,
+                                                                   WingNamedPipeClientFlags  flags,
+                                                                   GCancellable             *cancellable,
+                                                                   GAsyncReadyCallback       callback,
+                                                                   gpointer                  user_data);
 
 WING_AVAILABLE_IN_ALL
-WingNamedPipeConnection  *wing_named_pipe_client_connect_finish   (WingNamedPipeClient  *client,
-                                                                   GAsyncResult         *result,
-                                                                   GError              **error);
+WingNamedPipeConnection  *wing_named_pipe_client_connect_finish   (WingNamedPipeClient      *client,
+                                                                   GAsyncResult             *result,
+                                                                   GError                  **error);
 
 G_END_DECLS
 

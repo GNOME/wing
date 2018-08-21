@@ -105,6 +105,7 @@ test_connect_basic (void)
   client = wing_named_pipe_client_new ();
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name",
+                                        WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
                                         NULL,
                                         connected_cb,
                                         &success_connected);
@@ -138,6 +139,7 @@ test_connect_before_accept (void)
   client = wing_named_pipe_client_new ();
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name",
+                                        WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
                                         NULL,
                                         connected_cb,
                                         &success_connected);
@@ -175,6 +177,7 @@ test_connect_sync (void)
   client = wing_named_pipe_client_new ();
   connection = wing_named_pipe_client_connect (client,
                                                "\\\\.\\pipe\\gtest-connect-sync",
+                                               WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
                                                NULL,
                                                &error);
 
@@ -195,6 +198,7 @@ test_connect_sync_fails (void)
   client = wing_named_pipe_client_new ();
   connection = wing_named_pipe_client_connect (client,
                                                "\\\\.\\pipe\\gtest-connect-sync-fails",
+                                               WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
                                                NULL,
                                                &error);
 
@@ -291,6 +295,7 @@ test_connect_accept_cancel (void)
   client = wing_named_pipe_client_new ();
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name-connect-then-cancel",
+                                        WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
                                         NULL,
                                         connected_cb,
                                         &success_connected);
@@ -345,6 +350,7 @@ test_multi_client_basic (void)
   client = wing_named_pipe_client_new ();
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name-connect-multi-client",
+                                        WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
                                         NULL,
                                         connected_cb,
                                         &success_connected);
@@ -366,6 +372,7 @@ test_multi_client_basic (void)
   client = wing_named_pipe_client_new ();
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name-connect-multi-client",
+                                        WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
                                         NULL,
                                         connected_cb,
                                         &success_connected);
@@ -553,6 +560,7 @@ test_read_write_basic (void)
   client = wing_named_pipe_client_new ();
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name",
+                                        WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
                                         NULL,
                                         connected_read_write_cb,
                                         &conn_client);
@@ -600,6 +608,7 @@ test_read_write_several_connections (void)
       client = wing_named_pipe_client_new ();
       wing_named_pipe_client_connect_async (client,
                                             "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
+                                            WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
                                             NULL,
                                             connected_read_write_cb,
                                             &conn_client);
@@ -654,6 +663,7 @@ test_read_write_same_time_several_connections (void)
       client = wing_named_pipe_client_new ();
       wing_named_pipe_client_connect_async (client,
                                             "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
+                                            WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
                                             NULL,
                                             connected_read_write_cb,
                                             &conn_client);
