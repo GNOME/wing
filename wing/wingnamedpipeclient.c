@@ -143,6 +143,7 @@ wing_named_pipe_client_new (void)
  * wing_named_pipe_client_connect:
  * @client: a #WingNamedPipeClient.
  * @pipe_name: a pipe name.
+ * @flags: requested access to the pipe (read, write, both or none).
  * @cancellable: (allow-none): optional #GCancellable object, %NULL to ignore.
  * @error: #GError for error reporting, or %NULL to ignore.
  *
@@ -155,15 +156,17 @@ wing_named_pipe_client_new (void)
  * Returns: (transfer full): a #WingNamedPipeConnection on success, %NULL on error.
  */
 WingNamedPipeConnection *
-wing_named_pipe_client_connect (WingNamedPipeClient  *client,
-                                const gchar          *pipe_name,
-                                GCancellable         *cancellable,
-                                GError              **error)
+wing_named_pipe_client_connect (WingNamedPipeClient     *client,
+                                const gchar             *pipe_name,
+                                WingNamedPipeClientFlags flags,
+                                GCancellable            *cancellable,
+                                GError                  **error)
 {
   WingNamedPipeClientPrivate *priv;
   HANDLE handle = INVALID_HANDLE_VALUE;
   WingNamedPipeConnection *connection = NULL;
   gunichar2 *pipe_namew;
+  DWORD pipe_flags = 0;
 
   g_return_val_if_fail (WING_IS_NAMED_PIPE_CLIENT (client), NULL);
   g_return_val_if_fail (pipe_name != NULL, NULL);
@@ -181,8 +184,14 @@ wing_named_pipe_client_connect (WingNamedPipeClient  *client,
       if (g_cancellable_set_error_if_cancelled (cancellable, error))
         break;
 
+      if (flags & WING_NAMED_PIPE_CLIENT_GENERIC_READ)
+        pipe_flags |= GENERIC_READ;
+
+      if (flags & WING_NAMED_PIPE_CLIENT_GENERIC_WRITE)
+        pipe_flags |= GENERIC_WRITE;
+
       handle = CreateFileW (pipe_namew,
-                            GENERIC_READ | GENERIC_WRITE,
+                            pipe_flags,
                             FILE_SHARE_READ | FILE_SHARE_WRITE,
                             NULL,
                             OPEN_EXISTING,
@@ -235,6 +244,29 @@ wing_named_pipe_client_connect (WingNamedPipeClient  *client,
   return connection;
 }
 
+typedef struct
+{
+  gchar                      *pipe_name;
+  WingNamedPipeClientFlags    flags;
+} PipeAsyncTaskData;
+
+static PipeAsyncTaskData*
+create_pipe_async_task_data(const gchar                 *pipe_name,
+                            WingNamedPipeClientFlags     flags)
+{
+  PipeAsyncTaskData *task_data = g_new0(PipeAsyncTaskData, 1);
+  task_data->pipe_name = g_strdup(pipe_name);
+  task_data->flags = flags;
+  return task_data;
+}
+
+static void
+free_pipe_async_task_data(PipeAsyncTaskData *task_data)
+{
+  g_free(task_data->pipe_name);
+  g_free(task_data);
+}
+
 static void
 client_connect_thread (GTask        *task,
                        gpointer      source_object,
@@ -242,11 +274,12 @@ client_connect_thread (GTask        *task,
                        GCancellable *cancellable)
 {
   WingNamedPipeClient *client = WING_NAMED_PIPE_CLIENT (source_object);
-  const gchar *pipe_name = (const gchar *)task_data;
+  PipeAsyncTaskData *data = (PipeAsyncTaskData*)task_data;
   WingNamedPipeConnection *connection;
   GError *error = NULL;
 
-  connection = wing_named_pipe_client_connect (client, pipe_name,
+  connection = wing_named_pipe_client_connect (client, (const gchar *)data->pipe_name,
+                                               data->flags,
                                                cancellable, &error);
 
   if (connection == NULL)
@@ -272,11 +305,12 @@ client_connect_thread (GTask        *task,
  * the result of the operation.
  */
 void
-wing_named_pipe_client_connect_async (WingNamedPipeClient  *client,
-                                      const gchar          *pipe_name,
-                                      GCancellable         *cancellable,
-                                      GAsyncReadyCallback   callback,
-                                      gpointer              user_data)
+wing_named_pipe_client_connect_async (WingNamedPipeClient       *client,
+                                      const gchar               *pipe_name,
+                                      WingNamedPipeClientFlags   flags,
+                                      GCancellable              *cancellable,
+                                      GAsyncReadyCallback        callback,
+                                      gpointer                   user_data)
 {
   GTask *task;
 
@@ -284,7 +318,8 @@ wing_named_pipe_client_connect_async (WingNamedPipeClient  *client,
   g_return_if_fail (pipe_name != NULL);
 
   task = g_task_new (client, cancellable, callback, user_data);
-  g_task_set_task_data (task, g_strdup (pipe_name), g_free);
+  g_task_set_task_data (task, create_pipe_async_task_data(pipe_name, flags),
+                        (GDestroyNotify)free_pipe_async_task_data);
 
   g_task_run_in_thread (task, client_connect_thread);
 }
