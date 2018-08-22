@@ -130,6 +130,11 @@ if not gobject.found()
   gobject = subproject('glib').get_variable('libgobject_dep')
 endif
 
+gmodule = dependency('gmodule-2.0', version: '>=' + glib_req, required: false)
+if not gmodule.found()
+  gobject = subproject('glib').get_variable('libgmodule_dep')
+endif
+
 gio = dependency('gio-2.0', version: '>=' + glib_req, required: false)
 if not gio.found()
   gio = subproject('glib').get_variable('libgio_dep')

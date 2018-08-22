@@ -28,7 +28,7 @@ sources = [
 
 install_headers(headers, subdir: wing_includedir_real)
 
-platform_deps = [ glib, gobject, gio, gio_windows ]
+platform_deps = [ glib, gobject, gmodule, gio, gio_windows ]
 
 if cc.get_id() == 'msvc'
   wing_link_args = []
