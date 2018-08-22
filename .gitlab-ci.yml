@@ -24,7 +24,6 @@ msys2-mingw32:
     when: always
     paths:
       - _build/meson-logs
-      - _coverage/
 
 vs2017-x64:
   stage: build
