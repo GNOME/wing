@@ -7,6 +7,9 @@ cache:
   paths:
     - _ccache/
 
+variables:
+  MESON_TEST_TIMEOUT_MULTIPLIER: 2
+
 msys2-mingw32:
   stage: build
   except:
