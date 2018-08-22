@@ -120,10 +120,25 @@ core_inc = include_directories('.')
 # Required dependencies
 glib_req = '2.44.0'
 conf.set('GLIB_REQUIRED', glib_req)
-glib = dependency('glib-2.0', version: '>=' + glib_req)
-gobject = dependency('gobject-2.0', version: '>=' + glib_req)
-gio = dependency('gio-2.0', version: '>=' + glib_req)
-gio_windows = dependency('gio-windows-2.0', version: '>=' + glib_req)
+glib = dependency('glib-2.0', version: '>=' + glib_req, required: false)
+if not glib.found()
+  glib = subproject('glib').get_variable('libglib_dep')
+endif
+
+gobject = dependency('gobject-2.0', version: '>=' + glib_req, required: false)
+if not gobject.found()
+  gobject = subproject('glib').get_variable('libgobject_dep')
+endif
+
+gio = dependency('gio-2.0', version: '>=' + glib_req, required: false)
+if not gio.found()
+  gio = subproject('glib').get_variable('libgio_dep')
+endif
+
+gio_windows = dependency('gio-windows-2.0', version: '>=' + glib_req, required: false)
+if not gio_windows.found()
+  gio_windows = subproject('glib').get_variable('libgiowin32_dep')
+endif
 
 subdir('wing')
 subdir('tests')
