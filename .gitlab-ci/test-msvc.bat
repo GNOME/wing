@@ -9,8 +9,7 @@ pip3 install --upgrade --user meson==0.47.0  || goto :error
 meson _build || goto :error
 ninja -C _build || goto :error
 
-:: FIXME: dont ignore test errors
-meson test -C _build --timeout-multiplier %MESON_TEST_TIMEOUT_MULTIPLIER% --suite wing
+meson test -C _build --timeout-multiplier %MESON_TEST_TIMEOUT_MULTIPLIER% --suite wing || goto :error
 
 :: FIXME: can we get code coverage support?
 
