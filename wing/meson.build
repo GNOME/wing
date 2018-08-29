@@ -52,6 +52,8 @@ pkgg = import('pkgconfig')
 pkgg.generate(libraries: [ wing ],
               version: libversion,
               name: 'wing',
+              filebase: wing_api_name,
+              subdirs: wing_api_name,
               description: 'Wing is a library which provides GLib-like API to some Windows API.',
               requires: 'glib-2.0 >= ' + glib_req + ', gobject-2.0 >= ' + glib_req + ', gio-2.0 >= ' + glib_req)
 

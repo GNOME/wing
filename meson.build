@@ -14,6 +14,7 @@ wing_minor_version = version_array[1].to_int()
 wing_micro_version = version_array[2].to_int()
 
 wing_api_version = '1.0'
+wing_api_name = '@0@-@1@'.format(meson.project_name(), wing_api_version)
 
 # The interface age is reset every time we add new API; this
 # should only happen during development cycles, otherwise the
@@ -36,8 +37,8 @@ wing_prefix = get_option('prefix')
 wing_libdir = join_paths(wing_prefix, get_option('libdir'))
 wing_includedir = join_paths(wing_prefix, get_option('includedir'))
 wing_includedir_real = join_paths(wing_includedir,
-                                          'wing-@0@'.format(wing_api_version),
-                                          'wing')
+                                  wing_api_name,
+                                  meson.project_name())
 wing_datadir = join_paths(wing_prefix, get_option('datadir'))
 
 cc = meson.get_compiler('c')
