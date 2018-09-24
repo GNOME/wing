@@ -1,3 +1,8 @@
+News in 0.1.0
+--------------
+* Added Continuous integration
+* Improve pkg config generation
+
 News in 0.0.20
 --------------
 * Added support for read-only/write-only pipes
