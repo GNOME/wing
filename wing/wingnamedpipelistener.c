@@ -24,7 +24,7 @@
 #include <windows.h>
 #include <sddl.h>
 
-#define DEFAULT_PIPE_BUF_SIZE 4096
+#define DEFAULT_PIPE_BUF_SIZE 8192
 
 typedef struct
 {
