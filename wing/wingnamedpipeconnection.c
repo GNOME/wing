@@ -84,7 +84,10 @@ wing_named_pipe_connection_finalize (GObject *object)
     g_object_unref (connection->output_stream);
 
   if (connection->close_handle && connection->handle != INVALID_HANDLE_VALUE)
-    CloseHandle (connection->handle);
+    {
+      DisconnectNamedPipe (connection->handle);
+      CloseHandle (connection->handle);
+    }
 
   G_OBJECT_CLASS (wing_named_pipe_connection_parent_class)->finalize (object);
 }
