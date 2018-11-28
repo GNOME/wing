@@ -164,9 +164,9 @@ read_internal (GInputStream  *stream,
                                    g_strerror (EAGAIN));
               goto end;
             }
-          else if (blocking && wing_overlap_wait_result (win32_stream->priv->handle,
-                                                    &priv->overlap,
-                                                    &nread, cancellable))
+          else if (blocking && wing_overlap_wait_result (priv->handle,
+                                                         &priv->overlap,
+                                                         &nread, cancellable))
             {
               retval = nread;
               goto end;
