@@ -228,7 +228,7 @@ wing_input_stream_close (GInputStream  *stream,
   wing_stream = WING_INPUT_STREAM (stream);
   priv = wing_input_stream_get_instance_private (wing_stream);
 
-  if (!priv->close_handle)
+  if (priv->close_handle == INVALID_HANDLE_VALUE)
     return TRUE;
 
   res = CloseHandle (priv->handle);
@@ -244,6 +244,8 @@ wing_input_stream_close (GInputStream  *stream,
       g_free (emsg);
       return FALSE;
     }
+
+  priv->handle = INVALID_HANDLE_VALUE;
 
   return TRUE;
 }
