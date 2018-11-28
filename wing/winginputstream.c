@@ -33,12 +33,12 @@
  * Windows file handle.
  */
 
-struct _WingInputStreamPrivate {
+typedef struct {
   HANDLE handle;
   gboolean close_handle;
 
   OVERLAPPED overlap;
-};
+} WingInputStreamPrivate;
 
 enum {
   PROP_0,
