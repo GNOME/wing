@@ -57,6 +57,21 @@ G_DEFINE_TYPE_WITH_CODE (WingInputStream, wing_input_stream, G_TYPE_INPUT_STREAM
                          )
 
 static void
+wing_input_stream_finalize (GObject *object)
+{
+  WingInputStream *wing_stream;
+  WingInputStreamPrivate *priv;
+
+  wing_stream = WING_INPUT_STREAM (object);
+  priv = wing_input_stream_get_instance_private (wing_stream);
+
+  if (priv->overlap.hEvent != INVALID_HANDLE_VALUE)
+    CloseHandle (priv->overlap.hEvent);
+
+  G_OBJECT_CLASS (wing_input_stream_parent_class)->finalize (object);
+}
+
+static void
 wing_input_stream_set_property (GObject         *object,
                                 guint            prop_id,
                                 const GValue    *value,
@@ -239,6 +254,7 @@ wing_input_stream_class_init (WingInputStreamClass *klass)
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GInputStreamClass *stream_class = G_INPUT_STREAM_CLASS (klass);
 
+  gobject_class->finalize = wing_input_stream_finalize;
   gobject_class->get_property = wing_input_stream_get_property;
   gobject_class->set_property = wing_input_stream_set_property;
 
