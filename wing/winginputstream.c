@@ -335,7 +335,7 @@ wing_input_stream_pollable_create_source (GPollableInputStream *pollable,
 
   handle_source = wing_create_source (priv->overlap.hEvent,
                                       G_IO_IN, cancellable);
-  pollable_source = g_pollable_source_new_full (pollable, handle_source, cancelable);
+  pollable_source = g_pollable_source_new_full (pollable, handle_source, cancellable);
   g_source_unref (handle_source);
 
   return pollable_source;
