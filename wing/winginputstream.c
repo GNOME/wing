@@ -290,20 +290,26 @@ wing_input_stream_init (WingInputStream *wing_stream)
 static gboolean
 wing_input_stream_pollable_is_readable (GPollableInputStream *pollable)
 {
-  WingInputStream *input_stream = WING_INPUT_STREAM (pollable);
+  WingInputStream *wing_stream = WING_INPUT_STREAM (pollable);
+  WingInputStreamPrivate *priv;
 
-  return WaitForSingleObject (input_stream->priv->overlapped.hEvent, 0) == WAIT_OBJECT_0
+  priv = wing_input_stream_get_instance_private (wing_stream);
+
+  return WaitForSingleObject (priv->overlapped.hEvent, 0) == WAIT_OBJECT_0;
 }
 
 static GSource *
 wing_input_stream_pollable_create_source (GPollableInputStream *pollable,
                                           GCancellable         *cancellable)
 {
-  WingInputStream *input_stream = WING_INPUT_STREAM (pollable);
+  WingInputStream *wing_stream = WING_INPUT_STREAM (pollable);
+  WingInputStreamPrivate *priv;
   GSource *handle_source, *pollable_source;
 
+  priv = wing_input_stream_get_instance_private (wing_stream);
+
   pollable_source = g_pollable_source_new (G_OBJECT (input_stream));
-  handle_source = wing_create_source (input_stream->priv->overlapped.hEvent,
+  handle_source = wing_create_source (priv->overlapped.hEvent,
                                       G_IO_IN, cancellable);
   g_source_set_dummy_callback (handle_source);
   g_source_add_child_source (pollable_source, handle_source);
@@ -366,14 +372,18 @@ wing_input_stream_new (void     *handle,
  */
 void
 wing_input_stream_set_close_handle (WingInputStream *stream,
-                                       gboolean          close_handle)
+                                    gboolean         close_handle)
 {
+  WingInputStreamPrivate *priv;
+
   g_return_if_fail (G_IS_WIN32_INPUT_STREAM (stream));
 
+  priv = wing_input_stream_get_instance_private (stream);
+
   close_handle = close_handle != FALSE;
-  if (stream->priv->close_handle != close_handle)
+  if (priv->close_handle != close_handle)
     {
-      stream->priv->close_handle = close_handle;
+      priv->close_handle = close_handle;
       g_object_notify (G_OBJECT (stream), "close-handle");
     }
 }
@@ -390,9 +400,13 @@ wing_input_stream_set_close_handle (WingInputStream *stream,
 gboolean
 wing_input_stream_get_close_handle (WingInputStream *stream)
 {
+  WingInputStreamPrivate *priv;
+
   g_return_val_if_fail (G_IS_WIN32_INPUT_STREAM (stream), FALSE);
 
-  return stream->priv->close_handle;
+  priv = wing_input_stream_get_instance_private (stream);
+
+  return priv->close_handle;
 }
 
 /**
@@ -406,7 +420,11 @@ wing_input_stream_get_close_handle (WingInputStream *stream)
 void *
 wing_input_stream_get_handle (WingInputStream *stream)
 {
+  WingInputStreamPrivate *priv;
+
   g_return_val_if_fail (G_IS_WIN32_INPUT_STREAM (stream), NULL);
 
-  return stream->priv->handle;
+  priv = wing_input_stream_get_instance_private (stream);
+
+  return priv->handle;
 }
