@@ -144,6 +144,22 @@ read_internal (GInputStream  *stream,
   if (g_cancellable_set_error_if_cancelled (cancellable, error))
     return -1;
 
+  if (!blocking && g_pollable_input_stream_is_readable (G_POLLABLE_INPUT_STREAM (stream)))
+    {
+      gboolean result;
+
+      result = GetOverlappedResult (priv->overlap.hEvent, &priv->overlap, &nread, FALSE);
+      if (!result && GetLastError () == ERROR_IO_INCOMPLETE)
+        {
+          g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK,
+                               g_strerror (EAGAIN));
+          return -1;
+        }
+
+      retval = nread;
+      goto end;
+    }
+
   if (count > G_MAXINT)
     nbytes = G_MAXINT;
   else
