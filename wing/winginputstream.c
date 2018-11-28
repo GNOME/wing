@@ -333,11 +333,9 @@ wing_input_stream_pollable_create_source (GPollableInputStream *pollable,
 
   priv = wing_input_stream_get_instance_private (wing_stream);
 
-  pollable_source = g_pollable_source_new (G_OBJECT (wing_stream));
   handle_source = wing_create_source (priv->overlap.hEvent,
                                       G_IO_IN, cancellable);
-  g_source_set_dummy_callback (handle_source);
-  g_source_add_child_source (pollable_source, handle_source);
+  pollable_source = g_pollable_source_new_full (pollable, handle_source, cancelable);
   g_source_unref (handle_source);
 
   return pollable_source;
