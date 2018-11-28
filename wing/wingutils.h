@@ -20,6 +20,7 @@
 
 #include <glib.h>
 #include <wing/wingversionmacros.h>
+#include <windows.h>
 
 G_BEGIN_DECLS
 
