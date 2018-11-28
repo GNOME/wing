@@ -318,7 +318,7 @@ wing_input_stream_pollable_is_readable (GPollableInputStream *pollable)
 
   priv = wing_input_stream_get_instance_private (wing_stream);
 
-  return WaitForSingleObject (priv->overlapped.hEvent, 0) == WAIT_OBJECT_0;
+  return WaitForSingleObject (priv->overlap.hEvent, 0) == WAIT_OBJECT_0;
 }
 
 static GSource *
@@ -332,7 +332,7 @@ wing_input_stream_pollable_create_source (GPollableInputStream *pollable,
   priv = wing_input_stream_get_instance_private (wing_stream);
 
   pollable_source = g_pollable_source_new (G_OBJECT (input_stream));
-  handle_source = wing_create_source (priv->overlapped.hEvent,
+  handle_source = wing_create_source (priv->overlap.hEvent,
                                       G_IO_IN, cancellable);
   g_source_set_dummy_callback (handle_source);
   g_source_add_child_source (pollable_source, handle_source);
