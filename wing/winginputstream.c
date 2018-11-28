@@ -158,12 +158,19 @@ read_internal (GInputStream  *stream,
 
       if (errsv == ERROR_IO_PENDING)
         {
-          if (!blocking ||
-              blocking && wing_overlap_wait_result (win32_stream->priv->handle,
+          if (!blocking)
+            {
+              g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_WOULD_BLOCK,
+                                   g_strerror (EAGAIN));
+              goto end;
+            }
+          else if (blocking && wing_overlap_wait_result (win32_stream->priv->handle,
                                                     &priv->overlap,
                                                     &nread, cancellable))
-            retval = nread;
-            goto end;
+            {
+              retval = nread;
+              goto end;
+            }
         }
 
       if (g_cancellable_set_error_if_cancelled (cancellable, error))
