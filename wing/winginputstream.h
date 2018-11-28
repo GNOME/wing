@@ -36,7 +36,7 @@ G_BEGIN_DECLS
  * Implements #GInputStream for reading from selectable Windows file handles
  **/
 WING_AVAILABLE_IN_ALL
-G_DECLARE_FINAL_TYPE (WingInputStream, wing_input_stream, WING, INPUT_STREAM, GInputStream)
+G_DECLARE_DERIVABLE_TYPE (WingInputStream, wing_input_stream, WING, INPUT_STREAM, GInputStream)
 
 struct _WingInputStreamClass
 {
