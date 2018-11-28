@@ -19,6 +19,7 @@
 #define WING_UTILS_H
 
 #include <glib.h>
+#include <gio/gio.h>
 #include <wing/wingversionmacros.h>
 #include <windows.h>
 
