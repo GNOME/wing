@@ -21,6 +21,7 @@
  */
 
 #include "winginputstream.h"
+#include "wingutils.h"
 
 #include <windows.h>
 
@@ -200,7 +201,7 @@ read_internal (GInputStream  *stream,
         {
           gchar *emsg;
 
-          emsg = wing_error_message (errsv);
+          emsg = g_win32_error_message (errsv);
           g_set_error (error, G_IO_ERROR,
                        g_io_error_from_win32_error (errsv),
                        "Error reading from handle: %s",
@@ -242,7 +243,7 @@ wing_input_stream_close (GInputStream  *stream,
   if (!res)
     {
       int errsv = GetLastError ();
-      gchar *emsg = wing_error_message (errsv);
+      gchar *emsg = g_win32_error_message (errsv);
 
       g_set_error (error, G_IO_ERROR,
                    g_io_error_from_win32_error (errsv),
@@ -306,7 +307,7 @@ wing_input_stream_init (WingInputStream *wing_stream)
   priv->handle = NULL;
   priv->close_handle = TRUE;
   priv->overlap.hEvent = CreateEvent (NULL, TRUE, FALSE, NULL);
-  g_return_val_if_fail (priv->overlap.hEvent != INVALID_HANDLE_VALUE, -1);
+  g_return_if_fail (priv->overlap.hEvent != INVALID_HANDLE_VALUE);
 }
 
 
@@ -331,7 +332,7 @@ wing_input_stream_pollable_create_source (GPollableInputStream *pollable,
 
   priv = wing_input_stream_get_instance_private (wing_stream);
 
-  pollable_source = g_pollable_source_new (G_OBJECT (input_stream));
+  pollable_source = g_pollable_source_new (G_OBJECT (wing_stream));
   handle_source = wing_create_source (priv->overlap.hEvent,
                                       G_IO_IN, cancellable);
   g_source_set_dummy_callback (handle_source);
@@ -342,12 +343,12 @@ wing_input_stream_pollable_create_source (GPollableInputStream *pollable,
 }
 
 static gssize
-g_socket_input_stream_pollable_read_nonblocking (GPollableInputStream  *pollable,
-                                                 void                  *buffer,
-                                                 gsize                  count,
-                                                 GError               **error)
+wing_input_stream_pollable_read_nonblocking (GPollableInputStream  *pollable,
+                                             void                  *buffer,
+                                             gsize                  count,
+                                             GError               **error)
 {
-  return read_internal (stream, buffer, count, FALSE, NULL, error);
+  return read_internal (G_INPUT_STREAM (pollable), buffer, count, FALSE, NULL, error);
 }
 
 static void
@@ -399,7 +400,7 @@ wing_input_stream_set_close_handle (WingInputStream *stream,
 {
   WingInputStreamPrivate *priv;
 
-  g_return_if_fail (G_IS_WIN32_INPUT_STREAM (stream));
+  g_return_if_fail (WING_IS_INPUT_STREAM (stream));
 
   priv = wing_input_stream_get_instance_private (stream);
 
@@ -425,7 +426,7 @@ wing_input_stream_get_close_handle (WingInputStream *stream)
 {
   WingInputStreamPrivate *priv;
 
-  g_return_val_if_fail (G_IS_WIN32_INPUT_STREAM (stream), FALSE);
+  g_return_val_if_fail (WING_IS_INPUT_STREAM (stream), FALSE);
 
   priv = wing_input_stream_get_instance_private (stream);
 
@@ -445,7 +446,7 @@ wing_input_stream_get_handle (WingInputStream *stream)
 {
   WingInputStreamPrivate *priv;
 
-  g_return_val_if_fail (G_IS_WIN32_INPUT_STREAM (stream), NULL);
+  g_return_val_if_fail (WING_IS_INPUT_STREAM (stream), NULL);
 
   priv = wing_input_stream_get_instance_private (stream);
 
