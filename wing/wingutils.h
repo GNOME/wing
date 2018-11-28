@@ -19,7 +19,9 @@
 #define WING_UTILS_H
 
 #include <glib.h>
+#include <gio/gio.h>
 #include <wing/wingversionmacros.h>
+#include <windows.h>
 
 G_BEGIN_DECLS
 
@@ -43,6 +45,12 @@ gboolean     wing_get_process_times    (gint64 *current_user_time,
 
 WING_AVAILABLE_IN_ALL
 guint        wing_get_n_processors     (void);
+
+WING_AVAILABLE_IN_ALL
+gboolean     wing_overlap_wait_result  (HANDLE           hfile,
+                                        OVERLAPPED      *overlap,
+                                        DWORD           *transferred,
+                                        GCancellable    *cancellable);
 
 G_END_DECLS
 
