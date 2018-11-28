@@ -156,6 +156,8 @@ read_internal (GInputStream  *stream,
           return -1;
         }
 
+      ResetEvent (priv->overlap.hEvent);
+
       retval = nread;
       goto end;
     }
