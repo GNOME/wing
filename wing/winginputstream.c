@@ -22,6 +22,7 @@
 
 #include "winginputstream.h"
 #include "wingutils.h"
+#include "wingsource.h"
 
 #include <windows.h>
 
@@ -380,7 +381,7 @@ wing_input_stream_new (void     *handle,
 {
   g_return_val_if_fail (handle != NULL, NULL);
 
-  return g_object_new (G_TYPE_WIN32_INPUT_STREAM,
+  return g_object_new (WING_TYPE_INPUT_STREAM,
                        "handle", handle,
                        "close-handle", close_handle,
                        NULL);
