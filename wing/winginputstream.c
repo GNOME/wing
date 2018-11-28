@@ -63,16 +63,18 @@ wing_input_stream_set_property (GObject         *object,
                                 GParamSpec      *pspec)
 {
   WingInputStream *wing_stream;
+  WingInputStreamPrivate *priv;
 
   wing_stream = WING_INPUT_STREAM (object);
+  priv = wing_input_stream_get_instance_private (wing_stream);
 
   switch (prop_id)
     {
     case PROP_HANDLE:
-      wing_stream->priv->handle = g_value_get_pointer (value);
+      priv->handle = g_value_get_pointer (value);
       break;
     case PROP_CLOSE_HANDLE:
-      wing_stream->priv->close_handle = g_value_get_boolean (value);
+      priv->close_handle = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -87,16 +89,18 @@ wing_input_stream_get_property (GObject    *object,
                                 GParamSpec *pspec)
 {
   WingInputStream *wing_stream;
+  WingInputStreamPrivate *priv;
 
   wing_stream = WING_INPUT_STREAM (object);
+  priv = wing_input_stream_get_instance_private (wing_stream);
 
   switch (prop_id)
     {
     case PROP_HANDLE:
-      g_value_set_pointer (value, wing_stream->priv->handle);
+      g_value_set_pointer (value, priv->handle);
       break;
     case PROP_CLOSE_HANDLE:
-      g_value_set_boolean (value, wing_stream->priv->close_handle);
+      g_value_set_boolean (value, priv->close_handle);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -112,11 +116,13 @@ read_internal (GInputStream  *stream,
                GError       **error)
 {
   WingInputStream *wing_stream;
+  WingInputStreamPrivate *priv;
   BOOL res;
   DWORD nbytes, nread;
   gssize retval = -1;
 
   wing_stream = WING_INPUT_STREAM (stream);
+  priv = wing_input_stream_get_instance_private (wing_stream);
 
   if (g_cancellable_set_error_if_cancelled (cancellable, error))
     return -1;
@@ -126,9 +132,9 @@ read_internal (GInputStream  *stream,
   else
     nbytes = count;
 
-  ResetEvent (wing_stream->priv->overlap.hEvent);
+  ResetEvent (priv->overlap.hEvent);
 
-  res = ReadFile (wing_stream->priv->handle, buffer, nbytes, &nread, &wing_stream->priv->overlap);
+  res = ReadFile (priv->handle, buffer, nbytes, &nread, &priv->overlap);
   if (res)
     retval = nread;
   else
@@ -139,7 +145,7 @@ read_internal (GInputStream  *stream,
         {
           if (!blocking ||
               blocking && wing_overlap_wait_result (win32_stream->priv->handle,
-                                                    &wing_stream->priv->overlap,
+                                                    &priv->overlap,
                                                     &nread, cancellable))
             retval = nread;
             goto end;
@@ -201,14 +207,16 @@ wing_input_stream_close (GInputStream  *stream,
                            GError       **error)
 {
   WingInputStream *wing_stream;
+  WingInputStreamPrivate *priv;
   BOOL res;
 
   wing_stream = WING_INPUT_STREAM (stream);
+  priv = wing_input_stream_get_instance_private (wing_stream);
 
-  if (!wing_stream->priv->close_handle)
+  if (!priv->close_handle)
     return TRUE;
 
-  res = CloseHandle (wing_stream->priv->handle);
+  res = CloseHandle (priv->handle);
   if (!res)
     {
       int errsv = GetLastError ();
@@ -269,11 +277,13 @@ wing_input_stream_class_init (WingInputStreamClass *klass)
 static void
 wing_input_stream_init (WingInputStream *wing_stream)
 {
-  wing_stream->priv = wing_input_stream_get_instance_private (wing_stream);
-  wing_stream->priv->handle = NULL;
-  wing_stream->priv->close_handle = TRUE;
-  wing_stream->priv->overlap.hEvent = CreateEvent (NULL, TRUE, FALSE, NULL);
-  g_return_val_if_fail (wing_stream->priv->overlap.hEvent != INVALID_HANDLE_VALUE, -1);
+  WingInputStreamPrivate *priv;
+
+  priv = wing_input_stream_get_instance_private (wing_stream);
+  priv->handle = NULL;
+  priv->close_handle = TRUE;
+  priv->overlap.hEvent = CreateEvent (NULL, TRUE, FALSE, NULL);
+  g_return_val_if_fail (priv->overlap.hEvent != INVALID_HANDLE_VALUE, -1);
 }
 
 
