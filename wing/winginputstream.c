@@ -272,7 +272,7 @@ wing_input_stream_init (WingInputStream *wing_stream)
   wing_stream->priv = wing_input_stream_get_instance_private (wing_stream);
   wing_stream->priv->handle = NULL;
   wing_stream->priv->close_handle = TRUE;
-  wing_stream->priv->overlap.hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  wing_stream->priv->overlap.hEvent = CreateEvent (NULL, TRUE, FALSE, NULL);
   g_return_val_if_fail (wing_stream->priv->overlap.hEvent != NULL, -1);
 }
 
