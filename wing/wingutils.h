@@ -44,6 +44,12 @@ gboolean     wing_get_process_times    (gint64 *current_user_time,
 WING_AVAILABLE_IN_ALL
 guint        wing_get_n_processors     (void);
 
+WING_AVAILABLE_IN_ALL
+gboolean     wing_overlap_wait_result  (HANDLE           hfile,
+                                        OVERLAPPED      *overlap,
+                                        DWORD           *transferred,
+                                        GCancellable    *cancellable);
+
 G_END_DECLS
 
 #endif /* WING_UTILS_H */

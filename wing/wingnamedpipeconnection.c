@@ -21,7 +21,6 @@
 #include "wingnamedpipeconnection.h"
 
 #include <gio/gio.h>
-#include <gio/gwin32inputstream.h>
 #include <gio/gwin32outputstream.h>
 
 #include <windows.h>
@@ -110,7 +109,7 @@ wing_named_pipe_connection_set_property (GObject      *object,
       connection->handle = g_value_get_pointer (value);
       if (connection->handle != NULL && connection->handle != INVALID_HANDLE_VALUE)
         {
-          connection->input_stream = g_win32_input_stream_new (connection->handle, FALSE);
+          connection->input_stream = wing_input_stream_new (connection->handle, FALSE);
           connection->output_stream = g_win32_output_stream_new (connection->handle, FALSE);
         }
       break;
