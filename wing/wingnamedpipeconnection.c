@@ -19,6 +19,7 @@
 
 
 #include "wingnamedpipeconnection.h"
+#include "winginputstream.h"
 
 #include <gio/gio.h>
 #include <gio/gwin32outputstream.h>
