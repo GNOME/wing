@@ -280,9 +280,9 @@ wing_input_stream_init (WingInputStream *wing_stream)
 static gboolean
 wing_input_stream_pollable_is_readable (GPollableInputStream *pollable)
 {
-  GSocketInputStream *input_stream = G_SOCKET_INPUT_STREAM (pollable);
+  WingInputStream *input_stream = WING_INPUT_STREAM (pollable);
 
-  return g_socket_condition_check (input_stream->priv->socket, G_IO_IN);
+  return WaitForSingleObject (input_stream->priv->overlapped.hEvent, 0) == WAIT_OBJECT_0
 }
 
 static GSource *
