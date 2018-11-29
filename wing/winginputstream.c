@@ -171,7 +171,10 @@ read_internal (GInputStream  *stream,
 
   res = ReadFile (priv->handle, buffer, nbytes, &nread, &priv->overlap);
   if (res)
-    retval = nread;
+    {
+      retval = nread;
+      ResetEvent (priv->overlap.hEvent);
+    }
   else
     {
       int errsv = GetLastError ();
