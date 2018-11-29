@@ -18,6 +18,7 @@
  * Author: Alexander Larsson <alexl@redhat.com>
  * Author: Tor Lillqvist <tml@iki.fi>
  * Author: Ignacio Casal Quinteiro <qignacio@amazon.com>
+ * Author: Silvio Lazzeretti <silviola@amazon.com>
  */
 
 #include "wingoutputstream.h"
