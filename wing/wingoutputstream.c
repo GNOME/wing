@@ -62,11 +62,11 @@ G_DEFINE_TYPE_WITH_CODE (WingOutputStream, wing_output_stream, G_TYPE_OUTPUT_STR
 static void
 wing_output_stream_finalize (GObject *object)
 {
-  WingOutputStream *win32_stream;
+  WingOutputStream *wing_stream;
   WingOutputStreamPrivate *priv;
 
-  win32_stream = WING_OUTPUT_STREAM (object);
-  priv = wing_output_stream_get_instance_private (win32_stream);
+  wing_stream = WING_OUTPUT_STREAM (object);
+  priv = wing_output_stream_get_instance_private (wing_stream);
 
   if (priv->overlap.hEvent != INVALID_HANDLE_VALUE)
     CloseHandle (priv->overlap.hEvent);
@@ -76,15 +76,15 @@ wing_output_stream_finalize (GObject *object)
 
 static void
 wing_output_stream_set_property (GObject         *object,
-                                    guint            prop_id,
-                                    const GValue    *value,
-                                    GParamSpec      *pspec)
+                                 guint            prop_id,
+                                 const GValue    *value,
+                                 GParamSpec      *pspec)
 {
-  WingOutputStream *win32_stream;
+  WingOutputStream *wing_stream;
   WingOutputStreamPrivate *priv;
 
-  win32_stream = WING_OUTPUT_STREAM (object);
-  priv = wing_output_stream_get_instance_private (win32_stream);
+  wing_stream = WING_OUTPUT_STREAM (object);
+  priv = wing_output_stream_get_instance_private (wing_stream);
 
   switch (prop_id)
     {
@@ -102,15 +102,15 @@ wing_output_stream_set_property (GObject         *object,
 
 static void
 wing_output_stream_get_property (GObject    *object,
-                                    guint       prop_id,
-                                    GValue     *value,
-                                    GParamSpec *pspec)
+                                 guint       prop_id,
+                                 GValue     *value,
+                                 GParamSpec *pspec)
 {
-  WingOutputStream *win32_stream;
+  WingOutputStream *wing_stream;
   WingOutputStreamPrivate *priv;
 
-  win32_stream = WING_OUTPUT_STREAM (object);
-  priv = wing_output_stream_get_instance_private (win32_stream);
+  wing_stream = WING_OUTPUT_STREAM (object);
+  priv = wing_output_stream_get_instance_private (wing_stream);
 
   switch (prop_id)
     {
@@ -133,14 +133,14 @@ write_internal (GOutputStream  *stream,
                 GCancellable   *cancellable,
                 GError        **error)
 {
-  WingOutputStream *win32_stream;
+  WingOutputStream *wing_stream;
   WingOutputStreamPrivate *priv;
   BOOL res;
   DWORD nbytes, nwritten;
   gssize retval = -1;
 
-  win32_stream = WING_OUTPUT_STREAM (stream);
-  priv = wing_output_stream_get_instance_private (win32_stream);
+  wing_stream = WING_OUTPUT_STREAM (stream);
+  priv = wing_output_stream_get_instance_private (wing_stream);
 
   if (g_cancellable_set_error_if_cancelled (cancellable, error))
     return -1;
@@ -238,12 +238,12 @@ wing_output_stream_close (GOutputStream  *stream,
                           GCancellable   *cancellable,
                           GError        **error)
 {
-  WingOutputStream *win32_stream;
+  WingOutputStream *wing_stream;
   WingOutputStreamPrivate *priv;
   BOOL res;
 
-  win32_stream = WING_OUTPUT_STREAM (stream);
-  priv = wing_output_stream_get_instance_private (win32_stream);
+  wing_stream = WING_OUTPUT_STREAM (stream);
+  priv = wing_output_stream_get_instance_private (wing_stream);
 
   if (!priv->close_handle)
     return TRUE;
@@ -308,11 +308,11 @@ wing_output_stream_class_init (WingOutputStreamClass *klass)
 }
 
 static void
-wing_output_stream_init (WingOutputStream *win32_stream)
+wing_output_stream_init (WingOutputStream *wing_stream)
 {
   WingOutputStreamPrivate *priv;
 
-  priv = wing_output_stream_get_instance_private (win32_stream);
+  priv = wing_output_stream_get_instance_private (wing_stream);
   priv->handle = NULL;
   priv->close_handle = TRUE;
   priv->overlap.hEvent = CreateEvent (NULL, TRUE, FALSE, NULL);
@@ -383,7 +383,7 @@ wing_output_stream_new (void    *handle,
 {
   g_return_val_if_fail (handle != NULL, NULL);
 
-  return g_object_new (G_TYPE_WIN32_OUTPUT_STREAM,
+  return g_object_new (WING_TYPE_OUTPUT_STREAM,
                        "handle", handle,
                        "close-handle", close_handle,
                        NULL);
@@ -403,9 +403,9 @@ wing_output_stream_set_close_handle (WingOutputStream *stream,
 {
   WingOutputStreamPrivate *priv;
 
-  g_return_if_fail (G_IS_WIN32_OUTPUT_STREAM (stream));
+  g_return_if_fail (WING_IS_OUTPUT_STREAM (stream));
 
-  priv = wing_output_stream_get_instance_private (win32_stream);
+  priv = wing_output_stream_get_instance_private (wing_stream);
 
   close_handle = close_handle != FALSE;
   if (priv->close_handle != close_handle)
@@ -429,9 +429,9 @@ wing_output_stream_get_close_handle (WingOutputStream *stream)
 {
   WingOutputStreamPrivate *priv;
 
-  g_return_val_if_fail (G_IS_WIN32_OUTPUT_STREAM (stream), FALSE);
+  g_return_val_if_fail (WING_IS_OUTPUT_STREAM (stream), FALSE);
 
-  priv = wing_output_stream_get_instance_private (win32_stream);
+  priv = wing_output_stream_get_instance_private (wing_stream);
 
   return priv->close_handle;
 }
@@ -449,9 +449,9 @@ wing_output_stream_get_handle (WingOutputStream *stream)
 {
   WingOutputStreamPrivate *priv;
 
-  g_return_val_if_fail (G_IS_WIN32_OUTPUT_STREAM (stream), NULL);
+  g_return_val_if_fail (WING_IS_OUTPUT_STREAM (stream), NULL);
 
-  priv = wing_output_stream_get_instance_private (win32_stream);
+  priv = wing_output_stream_get_instance_private (wing_stream);
 
   return priv->handle;
 }
