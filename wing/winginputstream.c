@@ -193,6 +193,7 @@ read_internal (GInputStream  *stream,
                                                          &nread, cancellable))
             {
               retval = nread;
+              ResetEvent (priv->overlap.hEvent);
               goto end;
             }
         }
@@ -208,6 +209,7 @@ read_internal (GInputStream  *stream,
            * parameter specifies, ReadFile returns FALSE and
            * GetLastError returns ERROR_MORE_DATA */
           retval = nread;
+          ResetEvent (priv->overlap.hEvent);
           goto end;
         }
       else if (errsv == ERROR_HANDLE_EOF ||

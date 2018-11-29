@@ -194,6 +194,7 @@ write_internal (GOutputStream  *stream,
                                                          &nwritten, cancellable))
             {
               retval = nwritten;
+              ResetEvent (priv->overlap.hEvent);
               goto end;
             }
         }
