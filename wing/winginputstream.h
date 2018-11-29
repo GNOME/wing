@@ -46,18 +46,19 @@ struct _WingInputStreamClass
   gpointer padding[10];
 };
 
-GLIB_AVAILABLE_IN_ALL
+WING_AVAILABLE_IN_ALL
 GType          wing_input_stream_get_type         (void) G_GNUC_CONST;
 
-GLIB_AVAILABLE_IN_ALL
+WING_AVAILABLE_IN_ALL
 GInputStream * wing_input_stream_new              (void              *handle,
                                                    gboolean           close_handle);
-GLIB_AVAILABLE_IN_ALL
+WING_AVAILABLE_IN_ALL
 void           wing_input_stream_set_close_handle (WingInputStream *stream,
                                                    gboolean           close_handle);
-GLIB_AVAILABLE_IN_ALL
+WING_AVAILABLE_IN_ALL
 gboolean       wing_input_stream_get_close_handle (WingInputStream *stream);
-GLIB_AVAILABLE_IN_ALL
+
+WING_AVAILABLE_IN_ALL
 void          *wing_input_stream_get_handle       (WingInputStream *stream);
 
 G_END_DECLS
