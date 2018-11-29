@@ -24,6 +24,7 @@
 #define WING_OUTPUT_STREAM_H
 
 #include <gio/gio.h>
+#include <wing/wingversionmacros.h>
 
 G_BEGIN_DECLS
 
