@@ -200,7 +200,10 @@ write_internal (GOutputStream  *stream,
         }
 
       if (g_cancellable_set_error_if_cancelled (cancellable, error))
-        goto end;
+        {
+          ResetEvent (priv->overlap.hEvent);
+          goto end;
+        }
 
       errsv = GetLastError ();
       if (errsv == ERROR_HANDLE_EOF ||
