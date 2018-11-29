@@ -405,7 +405,7 @@ wing_output_stream_set_close_handle (WingOutputStream *stream,
 
   g_return_if_fail (WING_IS_OUTPUT_STREAM (stream));
 
-  priv = wing_output_stream_get_instance_private (wing_stream);
+  priv = wing_output_stream_get_instance_private (stream);
 
   close_handle = close_handle != FALSE;
   if (priv->close_handle != close_handle)
@@ -431,7 +431,7 @@ wing_output_stream_get_close_handle (WingOutputStream *stream)
 
   g_return_val_if_fail (WING_IS_OUTPUT_STREAM (stream), FALSE);
 
-  priv = wing_output_stream_get_instance_private (wing_stream);
+  priv = wing_output_stream_get_instance_private (stream);
 
   return priv->close_handle;
 }
@@ -451,7 +451,7 @@ wing_output_stream_get_handle (WingOutputStream *stream)
 
   g_return_val_if_fail (WING_IS_OUTPUT_STREAM (stream), NULL);
 
-  priv = wing_output_stream_get_instance_private (wing_stream);
+  priv = wing_output_stream_get_instance_private (stream);
 
   return priv->handle;
 }
