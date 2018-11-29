@@ -172,7 +172,10 @@ write_internal (GOutputStream  *stream,
 
   res = WriteFile (priv->handle, buffer, nbytes, &nwritten, &priv->overlap);
   if (res)
-    retval = nwritten;
+    {
+      retval = nwritten;
+      ResetEvent (priv->overlap.hEvent);
+    }
   else
     {
       int errsv = GetLastError ();
