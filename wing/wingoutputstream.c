@@ -145,7 +145,7 @@ write_internal (GOutputStream  *stream,
   if (g_cancellable_set_error_if_cancelled (cancellable, error))
     return -1;
 
-  if (!blocking && g_pollable_output_stream_is_writable (G_POLLABLE_INPUT_STREAM (stream)))
+  if (!blocking && g_pollable_output_stream_is_writable (G_POLLABLE_OUTPUT_STREAM (stream)))
     {
       gboolean result;
 
@@ -159,7 +159,7 @@ write_internal (GOutputStream  *stream,
 
       ResetEvent (priv->overlap.hEvent);
 
-      retval = nread;
+      retval = nwritten;
       goto end;
     }
 
@@ -192,7 +192,7 @@ write_internal (GOutputStream  *stream,
                                                          &priv->overlap,
                                                          &nwritten, cancellable))
             {
-              retval = nread;
+              retval = nwritten;
               goto end;
             }
         }
