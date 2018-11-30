@@ -29,6 +29,7 @@
 #include <wing/wingnamedpipelistener.h>
 #include <wing/wingnamedpipeconnection.h>
 #include <wing/wingoutputstream.h>
+#include <wing/wingpoll.h>
 #include <wing/wingservice.h>
 #include <wing/wingservicemanager.h>
 #include <wing/wingsource.h>
