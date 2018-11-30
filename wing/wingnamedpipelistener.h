@@ -79,6 +79,10 @@ WingNamedPipeConnection  *wing_named_pipe_listener_accept_finish  (WingNamedPipe
                                                                    GObject               **source_object,
                                                                    GError                **error);
 
+WING_AVAILABLE_IN_ALL
+void                      wing_named_pipe_listener_set_use_iocp   (WingNamedPipeListener  *listener,
+                                                                   gboolean                use_iocp);
+
 G_END_DECLS
 
 #endif /* WING_NAMED_PIPE_LISTENER_H */

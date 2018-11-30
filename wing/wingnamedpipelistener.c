@@ -42,7 +42,17 @@ typedef struct
 {
   GPtrArray *named_pipes;
   GMainContext *main_context;
+  gboolean use_iocp;
 } WingNamedPipeListenerPrivate;
+
+enum
+{
+  PROP_0,
+  PROP_USE_IOCP,
+  LAST_PROP
+};
+
+static GParamSpec *props[LAST_PROP];
 
 G_DEFINE_TYPE_WITH_PRIVATE (WingNamedPipeListener, wing_named_pipe_listener, G_TYPE_OBJECT)
 
@@ -86,6 +96,52 @@ pipe_data_free (PipeData *data)
 }
 
 static void
+wing_named_pipe_listener_set_property (GObject      *object,
+                                       guint         prop_id,
+                                       const GValue *value,
+                                       GParamSpec   *pspec)
+{
+  WingNamedPipeListener *listener = WING_NAMED_PIPE_LISTENER (object);
+  WingNamedPipeListenerPrivate *priv;
+
+  priv = wing_named_pipe_listener_get_instance_private (listener);
+
+  switch (prop_id)
+  {
+  case PROP_USE_IOCP:
+    priv->use_iocp = g_value_get_boolean (value);
+    break;
+
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    break;
+  }
+}
+
+static void
+wing_named_pipe_listener_get_property (GObject    *object,
+                                       guint       prop_id,
+                                       GValue     *value,
+                                       GParamSpec *pspec)
+{
+  WingNamedPipeListener *listener = WING_NAMED_PIPE_LISTENER (object);
+  WingNamedPipeListenerPrivate *priv;
+
+  priv = wing_named_pipe_listener_get_instance_private (listener);
+
+  switch (prop_id)
+  {
+  case PROP_USE_IOCP:
+      g_value_set_boolean (value, priv->use_iocp);
+      break;
+
+  default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
+
+static void
 wing_named_pipe_listener_finalize (GObject *object)
 {
   WingNamedPipeListener *listener = WING_NAMED_PIPE_LISTENER (object);
@@ -107,8 +163,26 @@ wing_named_pipe_listener_class_init (WingNamedPipeListenerClass *klass)
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
   gobject_class->finalize = wing_named_pipe_listener_finalize;
+  gobject_class->get_property = wing_named_pipe_listener_get_property;
+  gobject_class->set_property = wing_named_pipe_listener_set_property;
 
   source_quark = g_quark_from_static_string ("g-win32-named-pipe-listener-source");
+
+  /**
+   * WingNamedPipeConnection:use-iocp:
+   *
+   * Whether to use I/O completion port for async I/O.
+   */
+  props[PROP_USE_IOCP] =
+    g_param_spec_boolean ("use-iocp",
+                          "Use I/O completion port",
+                          "Whether to use I/O completion port for async I/O",
+                          FALSE,
+                          G_PARAM_READABLE |
+                          G_PARAM_WRITABLE |
+                          G_PARAM_STATIC_STRINGS);
+
+  g_object_class_install_properties (gobject_class, LAST_PROP, props);
 }
 
 static void
@@ -131,7 +205,8 @@ wing_named_pipe_listener_init (WingNamedPipeListener *listener)
 WingNamedPipeListener *
 wing_named_pipe_listener_new (void)
 {
-  return g_object_new (WING_TYPE_NAMED_PIPE_LISTENER, NULL);
+  return g_object_new (WING_TYPE_NAMED_PIPE_LISTENER,
+                       NULL);
 }
 
 static gboolean
@@ -331,6 +406,7 @@ connect_ready (HANDLE   handle,
                                  "pipe-name", pipe_data->pipe_name,
                                  "handle", pipe_data->handle,
                                  "close-handle", TRUE,
+                                 "use-iocp", priv->use_iocp,
                                  NULL);
 
       /* Put another pipe to listen so more clients can already connect */
@@ -536,6 +612,7 @@ wing_named_pipe_listener_accept (WingNamedPipeListener  *listener,
                                  "pipe-name", pipe_data->pipe_name,
                                  "handle", pipe_data->handle,
                                  "close-handle", TRUE,
+                                 "use-iocp", priv->use_iocp,
                                  NULL);
 
       if (source_object)
@@ -582,7 +659,10 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
   if (pipe_data != NULL)
     {
       WingNamedPipeConnection *connection;
+      WingNamedPipeListenerPrivate *priv;
       GError *error = NULL;
+
+      priv = wing_named_pipe_listener_get_instance_private (listener);
 
       if (pipe_data->source_object)
         g_object_set_qdata_full (G_OBJECT (task),
@@ -594,6 +674,7 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
                                  "pipe-name", pipe_data->pipe_name,
                                  "handle", pipe_data->handle,
                                  "close-handle", TRUE,
+                                 "use-iocp", priv->use_iocp,
                                  NULL);
 
       if (!create_pipe_from_pipe_data (pipe_data, &error))
@@ -641,4 +722,17 @@ wing_named_pipe_listener_accept_finish (WingNamedPipeListener  *listener,
     *source_object = g_object_get_qdata (G_OBJECT (result), source_quark);
 
   return g_task_propagate_pointer (G_TASK (result), error);
+}
+
+void
+wing_named_pipe_listener_set_use_iocp (WingNamedPipeListener *listener,
+                                       gboolean               use_iocp)
+{
+    WingNamedPipeListenerPrivate *priv;
+
+    g_return_if_fail (WING_IS_NAMED_PIPE_LISTENER (listener));
+
+    priv = wing_named_pipe_listener_get_instance_private (listener);
+
+    priv->use_iocp = use_iocp;
 }

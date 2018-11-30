@@ -21,6 +21,9 @@
 #include "wingnamedpipeconnection.h"
 #include "winginputstream.h"
 #include "wingoutputstream.h"
+#include "wingiocpinputstream.h"
+#include "wingiocpoutputstream.h"
+#include "wingutils.h"
 
 #include <gio/gio.h>
 
@@ -51,6 +54,9 @@ struct _WingNamedPipeConnection
 
   GInputStream *input_stream;
   GOutputStream *output_stream;
+
+  gboolean use_iocp;
+  PTP_IO threadpool_io;
 };
 
 struct _WingNamedPipeConnectionClass
@@ -65,10 +71,33 @@ enum
   PROP_0,
   PROP_PIPE_NAME,
   PROP_HANDLE,
-  PROP_CLOSE_HANDLE
+  PROP_CLOSE_HANDLE,
+  PROP_USE_IOCP,
+  LAST_PROP
 };
 
+static GParamSpec *props[LAST_PROP];
+
 G_DEFINE_TYPE (WingNamedPipeConnection, wing_named_pipe_connection, G_TYPE_IO_STREAM)
+
+static void
+threadpool_io_completion (PTP_CALLBACK_INSTANCE instance,
+                          PVOID                 ctxt,
+                          PVOID                 overlapped,
+                          ULONG                 result,
+                          ULONG_PTR             number_of_bytes_transferred,
+                          PTP_IO                threadpool_io)
+{
+  OverlappedData *overlapped_data = (OverlappedData *) overlapped;
+
+  overlapped_data->callback (instance,
+                             ctxt,
+                             overlapped,
+                             result,
+                             number_of_bytes_transferred,
+                             threadpool_io,
+                             overlapped_data->user_data);
+}
 
 static void
 wing_named_pipe_connection_finalize (GObject *object)
@@ -87,6 +116,12 @@ wing_named_pipe_connection_finalize (GObject *object)
     {
       DisconnectNamedPipe (connection->handle);
       CloseHandle (connection->handle);
+    }
+
+  if (connection->threadpool_io != NULL)
+    {
+      WaitForThreadpoolIoCallbacks (connection->threadpool_io, FALSE);
+      CloseThreadpoolIo (connection->threadpool_io);
     }
 
   G_OBJECT_CLASS (wing_named_pipe_connection_parent_class)->finalize (object);
@@ -112,6 +147,10 @@ wing_named_pipe_connection_set_property (GObject      *object,
 
     case PROP_CLOSE_HANDLE:
       connection->close_handle = g_value_get_boolean (value);
+      break;
+
+    case PROP_USE_IOCP:
+      connection->use_iocp = g_value_get_boolean (value);
       break;
 
     default:
@@ -140,6 +179,10 @@ wing_named_pipe_connection_get_property (GObject    *object,
 
     case PROP_CLOSE_HANDLE:
       g_value_set_boolean (value, connection->close_handle);
+      break;
+
+    case PROP_USE_IOCP:
+      g_value_set_boolean (value, connection->use_iocp);
       break;
 
     default:
@@ -172,8 +215,28 @@ wing_named_pipe_connection_constructed (GObject *object)
   if (connection->handle != NULL &&
       connection->handle != INVALID_HANDLE_VALUE)
     {
-      connection->input_stream = wing_input_stream_new (connection->handle, FALSE);
-      connection->output_stream = wing_output_stream_new (connection->handle, FALSE);
+      if (!connection->use_iocp)
+        {
+          connection->input_stream = wing_input_stream_new (connection->handle, FALSE);
+          connection->output_stream = wing_output_stream_new (connection->handle, FALSE);
+        }
+      else
+        {
+          connection->threadpool_io = CreateThreadpoolIo (connection->handle, threadpool_io_completion, NULL, NULL);
+          if (connection->threadpool_io == NULL)
+            {
+              gchar *emsg;
+
+              emsg = g_win32_error_message (GetLastError ());
+              g_warning ("Failed to create thread pool IO: %s", emsg);
+              g_free (emsg);
+
+              g_assert_not_reached ();
+            }
+
+          connection->input_stream = wing_iocp_input_stream_new (connection->handle, FALSE, connection->threadpool_io);
+          connection->output_stream = wing_iocp_output_stream_new (connection->handle, FALSE, connection->threadpool_io);
+        }
     }
 
   G_OBJECT_CLASS (wing_named_pipe_connection_parent_class)->constructed (object);
@@ -199,45 +262,59 @@ wing_named_pipe_connection_class_init (WingNamedPipeConnectionClass *class)
    * The name of the pipe.
    *
    */
-  g_object_class_install_property (gobject_class,
-                                   PROP_PIPE_NAME,
-                                   g_param_spec_string ("pipe-name",
-                                                        "Pipe name",
-                                                        "The pipe name",
-                                                        NULL,
-                                                        G_PARAM_READWRITE |
-                                                        G_PARAM_CONSTRUCT_ONLY |
-                                                        G_PARAM_STATIC_STRINGS));
+  props[PROP_PIPE_NAME] =
+    g_param_spec_string ("pipe-name",
+                         "Pipe name",
+                         "The pipe name",
+                         NULL,
+                         G_PARAM_READWRITE |
+                         G_PARAM_CONSTRUCT_ONLY |
+                         G_PARAM_STATIC_STRINGS);
 
   /**
    * WingNamedPipeConnection:handle:
    *
    * The handle for the connection.
    */
-  g_object_class_install_property (gobject_class,
-                                   PROP_HANDLE,
-                                   g_param_spec_pointer ("handle",
-                                                         "File handle",
-                                                         "The file handle to read from",
-                                                         G_PARAM_READABLE |
-                                                         G_PARAM_WRITABLE |
-                                                         G_PARAM_CONSTRUCT_ONLY |
-                                                         G_PARAM_STATIC_STRINGS));
+  props[PROP_HANDLE] =
+    g_param_spec_pointer ("handle",
+                          "File handle",
+                          "The file handle to read from",
+                          G_PARAM_READABLE |
+                          G_PARAM_WRITABLE |
+                          G_PARAM_CONSTRUCT_ONLY |
+                          G_PARAM_STATIC_STRINGS);
 
   /**
    * WingNamedPipeConnection:close-handle:
    *
    * Whether to close the file handle when the pipe connection is disposed.
    */
-  g_object_class_install_property (gobject_class,
-                                   PROP_CLOSE_HANDLE,
-                                   g_param_spec_boolean ("close-handle",
-                                                         "Close file handle",
-                                                         "Whether to close the file handle when the stream is closed",
-                                                         TRUE,
-                                                         G_PARAM_READABLE |
-                                                         G_PARAM_WRITABLE |
-                                                         G_PARAM_STATIC_STRINGS));
+  props[PROP_CLOSE_HANDLE] =
+    g_param_spec_boolean ("close-handle",
+                          "Close file handle",
+                          "Whether to close the file handle when the stream is closed",
+                          TRUE,
+                          G_PARAM_READABLE |
+                          G_PARAM_WRITABLE |
+                          G_PARAM_STATIC_STRINGS);
+
+  /**
+   * WingNamedPipeConnection:use-iocp:
+   *
+   * Whether to use I/O completion port for async I/O.
+   */
+  props[PROP_USE_IOCP] =
+    g_param_spec_boolean ("use-iocp",
+                          "Use I/O completion port",
+                          "Whether to use I/O completion port for async I/O",
+                          FALSE,
+                          G_PARAM_READABLE |
+                          G_PARAM_WRITABLE |
+                          G_PARAM_CONSTRUCT_ONLY |
+                          G_PARAM_STATIC_STRINGS );
+
+  g_object_class_install_properties (gobject_class, LAST_PROP, props);
 }
 
 static void

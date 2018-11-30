@@ -20,13 +20,24 @@
 #include <wing/wing.h>
 #include <windows.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct
+{
+  gboolean use_iocp;
+  void (*read_write_fn) (GIOStream *server_stream, GIOStream *client_stream);
+} TestData;
+
 static void
-test_add_named_pipe (void)
+test_add_named_pipe (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
   GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
 
   listener = wing_named_pipe_listener_new ();
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-good-named-pipe-name",
@@ -80,15 +91,17 @@ connected_cb (GObject      *source,
 }
 
 static void
-test_connect_basic (void)
+test_connect_basic (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
   WingNamedPipeClient *client;
   gboolean success_accepted = FALSE;
   gboolean success_connected = FALSE;
   GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
 
   listener = wing_named_pipe_listener_new ();
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name",
@@ -103,6 +116,8 @@ test_connect_basic (void)
                                          &success_accepted);
 
   client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name",
                                         WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
@@ -119,15 +134,17 @@ test_connect_basic (void)
 }
 
 static void
-test_connect_before_accept (void)
+test_connect_before_accept (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
   WingNamedPipeClient *client;
   gboolean success_accepted = FALSE;
   gboolean success_connected = FALSE;
   GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
 
   listener = wing_named_pipe_listener_new ();
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name",
@@ -137,6 +154,8 @@ test_connect_before_accept (void)
   g_assert_no_error (error);
 
   client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name",
                                         WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
@@ -158,14 +177,16 @@ test_connect_before_accept (void)
 }
 
 static void
-test_connect_sync (void)
+test_connect_sync (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
   WingNamedPipeClient *client;
   WingNamedPipeConnection *connection;
   GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
 
   listener = wing_named_pipe_listener_new ();
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-connect-sync",
@@ -175,6 +196,8 @@ test_connect_sync (void)
   g_assert_no_error (error);
 
   client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
   connection = wing_named_pipe_client_connect (client,
                                                "\\\\.\\pipe\\gtest-connect-sync",
                                                WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
@@ -189,13 +212,16 @@ test_connect_sync (void)
 }
 
 static void
-test_connect_sync_fails (void)
+test_connect_sync_fails (gconstpointer user_data)
 {
   WingNamedPipeClient *client;
   WingNamedPipeConnection *connection;
   GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
 
   client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
   connection = wing_named_pipe_client_connect (client,
                                                "\\\\.\\pipe\\gtest-connect-sync-fails",
                                                WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
@@ -235,15 +261,17 @@ on_cancel_accept (gpointer user_data)
 }
 
 static void
-test_accept_cancel (void)
+test_accept_cancel (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
   GCancellable *cancellable;
   gboolean accept_cancelled = FALSE;
   GError *error = NULL;
-
+  TestData *test_data = (TestData *) user_data;
+  
   cancellable = g_cancellable_new ();
   listener = wing_named_pipe_listener_new ();
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name-cancel",
@@ -268,7 +296,7 @@ test_accept_cancel (void)
 }
 
 static void
-test_connect_accept_cancel (void)
+test_connect_accept_cancel (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
   WingNamedPipeClient *client;
@@ -276,9 +304,11 @@ test_connect_accept_cancel (void)
   gboolean success_accepted = FALSE;
   gboolean success_connected = FALSE;
   GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
 
   cancellable = g_cancellable_new ();
   listener = wing_named_pipe_listener_new ();
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name-connect-then-cancel",
@@ -293,6 +323,8 @@ test_connect_accept_cancel (void)
                                          &success_accepted);
 
   client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name-connect-then-cancel",
                                         WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
@@ -323,7 +355,7 @@ test_connect_accept_cancel (void)
 }
 
 static void
-test_multi_client_basic (void)
+test_multi_client_basic (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
   WingNamedPipeClient *client;
@@ -331,9 +363,11 @@ test_multi_client_basic (void)
   gboolean success_accepted = FALSE;
   gboolean success_connected = FALSE;
   GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
 
   cancellable = g_cancellable_new ();
   listener = wing_named_pipe_listener_new ();
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name-connect-multi-client",
@@ -348,6 +382,8 @@ test_multi_client_basic (void)
                                          &success_accepted);
 
   client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name-connect-multi-client",
                                         WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
@@ -370,6 +406,8 @@ test_multi_client_basic (void)
                                          &success_accepted);
 
   client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name-connect-multi-client",
                                         WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
@@ -387,12 +425,15 @@ test_multi_client_basic (void)
 }
 
 static void
-test_client_default_timeout (void)
+test_client_default_timeout (gconstpointer user_data)
 {
   WingNamedPipeClient *client;
   guint timeout;
+  TestData *test_data = (TestData *) user_data;
 
   client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
   g_object_get (G_OBJECT (client), "timeout", &timeout, NULL);
 
   g_assert_cmpuint (timeout, ==, NMPWAIT_WAIT_FOREVER);
@@ -535,15 +576,83 @@ write_and_read (GIOStream *server_stream,
 }
 
 static void
-test_read_write_basic (void)
+write_and_read_mix_sync_async (GIOStream *server_stream,
+                               GIOStream *client_stream)
+{
+  gint i;
+
+  for (i = 0; i < MAX_ITERATIONS; i++)
+    {
+      ReadData *data;
+      GInputStream *in;
+      GOutputStream *out;
+      gboolean server_read = FALSE;
+      gboolean client_wrote = FALSE;
+      GError *error = NULL;
+      gssize readed_bytes;
+      gssize written_bytes;
+
+      /* Server */
+      out = g_io_stream_get_output_stream (server_stream);
+      in = g_io_stream_get_input_stream (server_stream);
+
+      written_bytes = g_output_stream_write (out,
+                                             some_text,
+                                             strlen (some_text) + 1,
+                                             NULL,
+                                             &error);
+      g_assert_no_error (error);
+      g_assert_cmpint (written_bytes, == , strlen (some_text) + 1);
+
+      data = g_new0 (ReadData, 1);
+      data->read = &server_read;
+      g_input_stream_read_async (in,
+                                 data->data,
+                                 sizeof (data->data),
+                                 G_PRIORITY_DEFAULT,
+                                 NULL,
+                                 on_some_text_read,
+                                 data);
+
+      /* Client */
+      out = g_io_stream_get_output_stream (client_stream);
+      in = g_io_stream_get_input_stream (client_stream);
+
+      g_output_stream_write_async (out,
+                                   some_text,
+                                   strlen (some_text) + 1,
+                                   G_PRIORITY_DEFAULT,
+                                   NULL,
+                                   on_some_text_written,
+                                   &client_wrote);
+
+      data = g_new0 (ReadData, 1);
+      readed_bytes = g_input_stream_read (in,
+                                          data->data,
+                                          sizeof (data->data),
+                                          NULL,
+                                          &error);
+      g_assert_no_error (error);
+      g_assert_cmpint (readed_bytes, == , strlen (some_text) + 1);
+
+      do
+        g_main_context_iteration (NULL, TRUE);
+      while (!client_wrote || !server_read);
+    }
+}
+
+static void
+test_read_write_basic (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
   WingNamedPipeClient *client;
   WingNamedPipeConnection *conn_server = NULL;
   WingNamedPipeConnection *conn_client = NULL;
   GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
 
   listener = wing_named_pipe_listener_new ();
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name",
@@ -558,6 +667,8 @@ test_read_write_basic (void)
                                          &conn_server);
 
   client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
   wing_named_pipe_client_connect_async (client,
                                         "\\\\.\\pipe\\gtest-named-pipe-name",
                                         WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
@@ -569,8 +680,8 @@ test_read_write_basic (void)
     g_main_context_iteration (NULL, TRUE);
   while (conn_server == NULL || conn_client == NULL);
 
-  write_and_read (G_IO_STREAM (conn_server),
-                  G_IO_STREAM (conn_client));
+  test_data->read_write_fn (G_IO_STREAM (conn_server),
+                            G_IO_STREAM (conn_client));
 
   g_object_unref (conn_client);
   g_object_unref (conn_server);
@@ -579,13 +690,15 @@ test_read_write_basic (void)
 }
 
 static void
-test_read_write_several_connections (void)
+test_read_write_several_connections (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
   gint i;
   GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
 
   listener = wing_named_pipe_listener_new ();
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
@@ -606,6 +719,8 @@ test_read_write_several_connections (void)
                                              &conn_server);
 
       client = wing_named_pipe_client_new ();
+      wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
       wing_named_pipe_client_connect_async (client,
                                             "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
                                             WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
@@ -617,8 +732,8 @@ test_read_write_several_connections (void)
         g_main_context_iteration (NULL, TRUE);
       while (conn_server == NULL || conn_client == NULL);
 
-      write_and_read (G_IO_STREAM (conn_server),
-                      G_IO_STREAM (conn_client));
+      test_data->read_write_fn (G_IO_STREAM(conn_server),
+                                G_IO_STREAM(conn_client));
 
       g_object_unref (conn_client);
       g_object_unref (conn_server);
@@ -629,15 +744,17 @@ test_read_write_several_connections (void)
 }
 
 static void
-test_read_write_same_time_several_connections (void)
+test_read_write_same_time_several_connections (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
   GPtrArray *client_conns;
   GPtrArray *server_conns;
   gint i;
   GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
 
   listener = wing_named_pipe_listener_new ();
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
 
   wing_named_pipe_listener_add_named_pipe (listener,
                                            "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
@@ -661,6 +778,8 @@ test_read_write_same_time_several_connections (void)
                                              &conn_server);
 
       client = wing_named_pipe_client_new ();
+      wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
       wing_named_pipe_client_connect_async (client,
                                             "\\\\.\\pipe\\gtest-named-pipe-name-read-write-several",
                                             WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
@@ -683,8 +802,8 @@ test_read_write_same_time_several_connections (void)
       WingNamedPipeConnection *conn_server = client_conns->pdata[i];
       WingNamedPipeConnection *conn_client = server_conns->pdata[i];
 
-      write_and_read (G_IO_STREAM (conn_server),
-                      G_IO_STREAM (conn_client));
+      test_data->read_write_fn (G_IO_STREAM(conn_server),
+                                G_IO_STREAM(conn_client));
     }
 
   g_ptr_array_unref (client_conns);
@@ -697,22 +816,59 @@ int
 main (int   argc,
       char *argv[])
 {
+  TestData test_data;
+  TestData test_data_sync_async;
+  TestData test_data_iocp;
+  TestData test_data_iocp_sync_async;
+
   g_test_init (&argc, &argv, NULL);
 
   g_test_bug_base ("http://bugzilla.gnome.org/");
 
-  g_test_add_func ("/named-pipes/add-named-pipe", test_add_named_pipe);
-  g_test_add_func ("/named-pipes/connect-basic", test_connect_basic);
-  g_test_add_func ("/named-pipes/connect-before-accept", test_connect_before_accept);
-  g_test_add_func ("/named-pipes/connect-sync", test_connect_sync);
-  g_test_add_func ("/named-pipes/connect-sync-fails", test_connect_sync_fails);
-  g_test_add_func ("/named-pipes/accept-cancel", test_accept_cancel);
-  g_test_add_func ("/named-pipes/connect-accept-cancel", test_connect_accept_cancel);
-  g_test_add_func ("/named-pipes/multi-client-basic", test_multi_client_basic);
-  g_test_add_func ("/named-pipes/client-default-timeout", test_client_default_timeout);
-  g_test_add_func ("/named-pipes/read-write-basic", test_read_write_basic);
-  g_test_add_func ("/named-pipes/read-write-several-connections", test_read_write_several_connections);
-  g_test_add_func ("/named-pipes/read-write-same-time-several-connections", test_read_write_same_time_several_connections);
+  test_data.use_iocp = FALSE;
+  test_data.read_write_fn = write_and_read;
+
+  test_data_sync_async.use_iocp = FALSE;
+  test_data_sync_async.read_write_fn = write_and_read_mix_sync_async;
+
+  test_data_iocp.use_iocp = TRUE;
+  test_data_iocp.read_write_fn = write_and_read;
+
+  test_data_iocp_sync_async.use_iocp = TRUE;
+  test_data_iocp_sync_async.read_write_fn = write_and_read_mix_sync_async;
+
+  g_test_add_data_func ("/named-pipes/add-named-pipe", &test_data, test_add_named_pipe);
+  g_test_add_data_func ("/named-pipes/connect-basic", &test_data, test_connect_basic);
+  g_test_add_data_func ("/named-pipes/connect-before-accept", &test_data, test_connect_before_accept);
+  g_test_add_data_func ("/named-pipes/connect-sync", &test_data, test_connect_sync);
+  g_test_add_data_func ("/named-pipes/connect-sync-fails", &test_data, test_connect_sync_fails);
+  g_test_add_data_func ("/named-pipes/accept-cancel", &test_data, test_accept_cancel);
+  g_test_add_data_func ("/named-pipes/connect-accept-cancel", &test_data, test_connect_accept_cancel);
+  g_test_add_data_func ("/named-pipes/multi-client-basic", &test_data, test_multi_client_basic);
+  g_test_add_data_func ("/named-pipes/client-default-timeout", &test_data, test_client_default_timeout);
+  g_test_add_data_func ("/named-pipes/read-write-basic", &test_data, test_read_write_basic);
+  g_test_add_data_func ("/named-pipes/read-write-several-connections", &test_data, test_read_write_several_connections);
+  g_test_add_data_func ("/named-pipes/read-write-same-time-several-connections", &test_data, test_read_write_same_time_several_connections);
+  g_test_add_data_func ("/named-pipes/read-write-mix-sync-async-basic", &test_data_sync_async, test_read_write_basic);
+  g_test_add_data_func ("/named-pipes/read-write-mix-sync-async-several-connections", &test_data_sync_async, test_read_write_several_connections);
+  g_test_add_data_func ("/named-pipes/read-write-mix-sync-async-same-time-several-connections", &test_data_sync_async, test_read_write_same_time_several_connections);
+
+  /* I/O completion port tests */
+  g_test_add_data_func ("/named-pipes-iocp/add-named-pipe", &test_data_iocp, test_add_named_pipe);
+  g_test_add_data_func ("/named-pipes-iocp/connect-basic", &test_data_iocp, test_connect_basic);
+  g_test_add_data_func ("/named-pipes-iocp/connect-before-accept", &test_data_iocp, test_connect_before_accept);
+  g_test_add_data_func ("/named-pipes-iocp/connect-sync", &test_data_iocp, test_connect_sync);
+  g_test_add_data_func ("/named-pipes-iocp/connect-sync-fails", &test_data_iocp, test_connect_sync_fails);
+  g_test_add_data_func ("/named-pipes-iocp/accept-cancel", &test_data_iocp, test_accept_cancel);
+  g_test_add_data_func ("/named-pipes-iocp/connect-accept-cancel", &test_data_iocp, test_connect_accept_cancel);
+  g_test_add_data_func ("/named-pipes-iocp/multi-client-basic", &test_data_iocp, test_multi_client_basic);
+  g_test_add_data_func ("/named-pipes-iocp/client-default-timeout", &test_data_iocp, test_client_default_timeout);
+  g_test_add_data_func ("/named-pipes-iocp/read-write-basic", &test_data_iocp, test_read_write_basic);
+  g_test_add_data_func ("/named-pipes-iocp/read-write-several-connections", &test_data_iocp, test_read_write_several_connections);
+  g_test_add_data_func ("/named-pipes-iocp/read-write-same-time-several-connections", &test_data_iocp, test_read_write_same_time_several_connections);
+  g_test_add_data_func ("/named-pipes-iocp/read-write-mix-sync-async-basic", &test_data_iocp_sync_async, test_read_write_basic);
+  g_test_add_data_func ("/named-pipes-iocp/read-write-mix-sync-async-several-connections", &test_data_iocp_sync_async, test_read_write_several_connections);
+  g_test_add_data_func ("/named-pipes-iocp/read-write-mix-sync-async-same-time-several-connections", &test_data_iocp_sync_async, test_read_write_same_time_several_connections);
 
   return g_test_run ();
 }
