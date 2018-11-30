@@ -258,6 +258,7 @@ read_async_ready (WingInputStream *wing_stream,
   ResetEvent (priv->overlap.hEvent);
 
   g_task_return_int (task, nread);
+  g_object_unref (task);
 
   return G_SOURCE_REMOVE;
 }
