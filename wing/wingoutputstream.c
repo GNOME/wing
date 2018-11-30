@@ -309,7 +309,7 @@ wing_output_stream_write_async (GOutputStream            *stream,
 
   emsg = g_win32_error_message (errsv);
   g_task_report_new_error (stream, callback, user_data,
-                           wing_input_stream_write_async,
+                           wing_output_stream_write_async,
                            G_IO_ERROR, g_io_error_from_win32_error (errsv),
                            "Error writing to handle: %s",
                            emsg);
