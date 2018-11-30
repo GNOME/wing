@@ -224,15 +224,15 @@ wing_output_stream_close (GOutputStream  *stream,
 }
 
 static gboolean
-write_async_ready (WingInputStream *wing_stream,
-                   gpointer         user_data)
+write_async_ready (WingOutputStream *wing_stream,
+                   gpointer          user_data)
 {
-  WingInputStreamPrivate *priv;
+  WingOutputStreamPrivate *priv;
   GTask *task = user_data;
   DWORD nwritten;
   gboolean result;
 
-  priv = wing_input_stream_get_instance_private (wing_stream);
+  priv = wing_output_stream_get_instance_private (wing_stream);
 
   result = GetOverlappedResult (priv->overlap.hEvent, &priv->overlap, &nwritten, FALSE);
   if (!result && GetLastError () == ERROR_IO_INCOMPLETE)
