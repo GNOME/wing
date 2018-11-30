@@ -321,7 +321,7 @@ wing_input_stream_read_async (GInputStream        *stream,
        * GetLastError returns ERROR_MORE_DATA */
       ResetEvent (priv->overlap.hEvent);
       g_task_return_int (task, nread);
-      return
+      return;
     }
 
   if (errsv == ERROR_HANDLE_EOF ||
