@@ -224,7 +224,7 @@ wing_output_stream_close (GOutputStream  *stream,
 }
 
 static gboolean
-write_async_ready (WingInputStream *stream,
+write_async_ready (WingInputStream *wing_stream,
                    gpointer         user_data)
 {
   WingInputStreamPrivate *priv;
@@ -260,6 +260,7 @@ wing_output_stream_write_async (GOutputStream            *stream,
 {
   WingOutputStream *wing_stream;
   WingOutputStreamPrivate *priv;
+  BOOL res;
   DWORD nbytes, nwritten;
   int errsv;
   GTask *task;

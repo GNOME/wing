@@ -237,7 +237,7 @@ wing_input_stream_close (GInputStream  *stream,
 }
 
 static gboolean
-read_async_ready (WingInputStream *stream,
+read_async_ready (WingInputStream *wing_stream,
                   gpointer         user_data)
 {
   WingInputStreamPrivate *priv;
@@ -273,6 +273,7 @@ wing_input_stream_read_async (GInputStream        *stream,
 {
   WingInputStream *wing_stream;
   WingInputStreamPrivate *priv;
+  BOOL res;
   DWORD nbytes, nread;
   int errsv;
   GTask *task;
