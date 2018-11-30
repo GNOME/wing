@@ -58,7 +58,7 @@ WING_AVAILABLE_IN_ALL
 GType                     wing_named_pipe_client_get_type         (void) G_GNUC_CONST;
 
 WING_AVAILABLE_IN_ALL
-WingNamedPipeClient      *wing_named_pipe_client_new              (void);
+WingNamedPipeClient      *wing_named_pipe_client_new              (gboolean                  use_iocp);
 
 WING_AVAILABLE_IN_ALL
 WingNamedPipeConnection  *wing_named_pipe_client_connect          (WingNamedPipeClient      *client,

@@ -52,7 +52,7 @@ WING_AVAILABLE_IN_ALL
 GType                     wing_named_pipe_listener_get_type       (void) G_GNUC_CONST;
 
 WING_AVAILABLE_IN_ALL
-WingNamedPipeListener    *wing_named_pipe_listener_new            (void);
+WingNamedPipeListener    *wing_named_pipe_listener_new            (gboolean                use_iocp);
 
 WING_AVAILABLE_IN_ALL
 gboolean                  wing_named_pipe_listener_add_named_pipe (WingNamedPipeListener  *listener,
