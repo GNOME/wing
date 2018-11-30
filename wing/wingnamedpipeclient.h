@@ -80,6 +80,10 @@ WingNamedPipeConnection  *wing_named_pipe_client_connect_finish   (WingNamedPipe
                                                                    GAsyncResult             *result,
                                                                    GError                  **error);
 
+WING_AVAILABLE_IN_ALL
+void                      wing_named_pipe_client_set_use_iocp     (WingNamedPipeClient      *client,
+                                                                   gboolean                  use_iocp);
+
 G_END_DECLS
 
 #endif /* WING_NAMED_PIPE_CLIENT_H */

@@ -25,6 +25,18 @@
 
 G_BEGIN_DECLS
 
+typedef struct {
+  OVERLAPPED overlapped;
+  gpointer user_data;
+  void (*callback) (PTP_CALLBACK_INSTANCE instance,
+                    PVOID                 ctxt,
+                    PVOID                 overlapped,
+                    ULONG                 result,
+                    ULONG_PTR             number_of_bytes_transferred,
+                    PTP_IO                threadpool_io,
+                    gpointer              user_data);
+} WingOverlappedData;
+
 WING_AVAILABLE_IN_ALL
 gboolean     wing_is_wow_64            (void);
 

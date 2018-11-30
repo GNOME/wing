@@ -41,18 +41,20 @@
 typedef struct
 {
   guint timeout;
+  gboolean use_iocp;
 } WingNamedPipeClientPrivate;
 
 enum
 {
   PROP_0,
   PROP_TIMEOUT,
+  PROP_USE_IOCP,
   LAST_PROP
 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (WingNamedPipeClient, wing_named_pipe_client, G_TYPE_OBJECT)
-
 static GParamSpec *props[LAST_PROP];
+
+G_DEFINE_TYPE_WITH_PRIVATE (WingNamedPipeClient, wing_named_pipe_client, G_TYPE_OBJECT)
 
 static void
 wing_named_pipe_client_get_property (GObject    *object,
@@ -70,6 +72,11 @@ wing_named_pipe_client_get_property (GObject    *object,
     case PROP_TIMEOUT:
       g_value_set_uint (value, priv->timeout);
       break;
+
+    case PROP_USE_IOCP:
+        g_value_set_boolean (value, priv->use_iocp);
+        break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -92,6 +99,11 @@ wing_named_pipe_client_set_property (GObject      *object,
     case PROP_TIMEOUT:
       priv->timeout = g_value_get_uint (value);
       break;
+
+    case PROP_USE_IOCP:
+      priv->use_iocp = g_value_get_boolean (value);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -107,15 +119,29 @@ wing_named_pipe_client_class_init (WingNamedPipeClientClass *klass)
   object_class->set_property = wing_named_pipe_client_set_property;
 
   props[PROP_TIMEOUT] =
-   g_param_spec_uint ("timeout",
-                      "Timeout",
-                      "The timeout in milliseconds to wait",
-                      0,
-                      NMPWAIT_WAIT_FOREVER,
-                      NMPWAIT_WAIT_FOREVER,
-                      G_PARAM_READWRITE |
-                      G_PARAM_CONSTRUCT |
-                      G_PARAM_STATIC_STRINGS);
+    g_param_spec_uint ("timeout",
+                       "Timeout",
+                       "The timeout in milliseconds to wait",
+                       0,
+                       NMPWAIT_WAIT_FOREVER,
+                       NMPWAIT_WAIT_FOREVER,
+                       G_PARAM_READWRITE |
+                       G_PARAM_CONSTRUCT |
+                       G_PARAM_STATIC_STRINGS);
+
+  /**
+   * WingNamedPipeConnection:use-iocp:
+   *
+   * Whether to use I/O completion port for async I/O.
+   */
+  props[PROP_USE_IOCP] =
+    g_param_spec_boolean ("use-iocp",
+                          "Use I/O completion port",
+                          "Whether to use I/O completion port for async I/O",
+                          FALSE,
+                          G_PARAM_READABLE |
+                          G_PARAM_WRITABLE |
+                          G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class, LAST_PROP, props);
 }
@@ -136,7 +162,8 @@ wing_named_pipe_client_init (WingNamedPipeClient *self)
 WingNamedPipeClient *
 wing_named_pipe_client_new (void)
 {
-  return g_object_new (WING_TYPE_NAMED_PIPE_CLIENT, NULL);
+  return g_object_new (WING_TYPE_NAMED_PIPE_CLIENT,
+                       NULL);
 }
 
 /**
@@ -239,6 +266,7 @@ wing_named_pipe_client_connect (WingNamedPipeClient     *client,
                                "pipe-name", pipe_name,
                                "handle", handle,
                                "close-handle", TRUE,
+                               "use-iocp", priv->use_iocp,
                                NULL);
 
   return connection;
@@ -344,4 +372,21 @@ wing_named_pipe_client_connect_finish (WingNamedPipeClient  *client,
   g_return_val_if_fail (g_task_is_valid (result, client), NULL);
 
   return g_task_propagate_pointer (G_TASK (result), error);
+}
+
+void
+wing_named_pipe_client_set_use_iocp (WingNamedPipeClient *client,
+                                     gboolean             use_iocp)
+{
+  WingNamedPipeClientPrivate *priv;
+
+  g_return_if_fail (WING_IS_NAMED_PIPE_CLIENT (client));
+
+  priv = wing_named_pipe_client_get_instance_private (client);
+
+  if (priv->use_iocp != use_iocp)
+    {
+      priv->use_iocp = use_iocp;
+      g_object_notify_by_pspec (client, props[PROP_USE_IOCP]);
+    }
 }
