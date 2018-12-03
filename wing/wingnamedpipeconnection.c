@@ -108,11 +108,6 @@ wing_named_pipe_connection_set_property (GObject      *object,
 
     case PROP_HANDLE:
       connection->handle = g_value_get_pointer (value);
-      if (connection->handle != NULL && connection->handle != INVALID_HANDLE_VALUE)
-        {
-          connection->input_stream = wing_input_stream_new (connection->handle, FALSE);
-          connection->output_stream = wing_output_stream_new (connection->handle, FALSE);
-        }
       break;
 
     case PROP_CLOSE_HANDLE:
@@ -170,11 +165,27 @@ wing_named_pipe_connection_get_output_stream (GIOStream *stream)
 }
 
 static void
+wing_named_pipe_connection_constructed (GObject *object)
+{
+  WingNamedPipeConnection *connection = WING_NAMED_PIPE_CONNECTION (object);
+
+  if (connection->handle != NULL &&
+      connection->handle != INVALID_HANDLE_VALUE)
+    {
+      connection->input_stream = wing_input_stream_new (connection->handle, FALSE);
+      connection->output_stream = wing_output_stream_new (connection->handle, FALSE);
+    }
+
+  G_OBJECT_CLASS (wing_named_pipe_connection_parent_class)->constructed (object);
+}
+
+static void
 wing_named_pipe_connection_class_init (WingNamedPipeConnectionClass *class)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (class);
   GIOStreamClass *io_class = G_IO_STREAM_CLASS (class);
 
+  gobject_class->constructed = wing_named_pipe_connection_constructed;
   gobject_class->finalize = wing_named_pipe_connection_finalize;
   gobject_class->get_property = wing_named_pipe_connection_get_property;
   gobject_class->set_property = wing_named_pipe_connection_set_property;
