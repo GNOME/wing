@@ -610,14 +610,10 @@ int
 main (int   argc,
       char *argv[])
 {
-  int result;
-
   g_test_init (&argc, &argv, NULL);
   init_networking ();
 
   g_test_add_func ("/poll/wing-poll", test_wing_poll);
 
-  result = g_test_run ();
-
-  return result;
+  return g_test_run ();
 }
