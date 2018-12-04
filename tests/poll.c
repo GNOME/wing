@@ -18,9 +18,9 @@
 
 #define _WIN32_WINNT 0x0600
 
+#include <Winsock2.h>
 #include <wing/wing.h>
 #include <glib.h>
-#include <Winsock2.h>
 
 #define NUM_POLLEES 63
 #define NUM_POLLFDS 64
