@@ -1,5 +1,6 @@
 unit_tests = [
   'named-pipe',
+  'poll',
 ]
 
 foreach unit: unit_tests
