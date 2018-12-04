@@ -296,10 +296,8 @@ wing_poll (GPollFD *fds,
   if (timeout == -1)
     timeout = INFINITE;
 
-  /* Simple case without extra threads, note that the MSG fd could take a slot
-   * so we check for less than MAXIMUM_WAIT_OBJECTS
-   */
-  if (nfds < MAXIMUM_WAIT_OBJECTS)
+  /* Simple case without extra threads */
+  if (nfds <= MAXIMUM_WAIT_OBJECTS)
     {
       GWin32PollThreadData data = { 0, };
 
