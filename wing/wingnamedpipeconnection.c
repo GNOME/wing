@@ -80,7 +80,7 @@ static GParamSpec *props[LAST_PROP];
 
 G_DEFINE_TYPE (WingNamedPipeConnection, wing_named_pipe_connection, G_TYPE_IO_STREAM)
 
-static void
+static void CALLBACK
 threadpool_io_completion (PTP_CALLBACK_INSTANCE instance,
                           PVOID                 ctxt,
                           PVOID                 overlapped,
