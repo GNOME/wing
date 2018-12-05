@@ -22,6 +22,8 @@
 
 #include <wing/wingversionmacros.h>
 #include <wing/wingeventwindow.h>
+#include <wing/wingiocpinputstream.h>
+#include <wing/wingiocpoutputstream.h>
 #include <wing/winginputstream.h>
 #include <wing/wingnamedpipeclient.h>
 #include <wing/wingnamedpipelistener.h>
