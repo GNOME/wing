@@ -1,3 +1,10 @@
+News in 0.1.2
+--------------
+* Added wing_poll which supports polling for more than 64 handles
+* New input and output streams improving performance when using async reads and writes
+* New input and output streams using I/O completion ports
+* Now pipes use the above input/output streams depending on a property
+
 News in 0.1.0
 --------------
 * Added Continuous integration
