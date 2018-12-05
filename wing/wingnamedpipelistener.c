@@ -736,6 +736,6 @@ wing_named_pipe_listener_set_use_iocp (WingNamedPipeListener *listener,
   if (priv->use_iocp != use_iocp)
     {
       priv->use_iocp = use_iocp;
-      g_object_notify_by_pspec (listener, props[PROP_USE_IOCP]);
+      g_object_notify_by_pspec (G_OBJECT (listener), props[PROP_USE_IOCP]);
     }
 }

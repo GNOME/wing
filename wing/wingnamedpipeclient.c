@@ -387,6 +387,6 @@ wing_named_pipe_client_set_use_iocp (WingNamedPipeClient *client,
   if (priv->use_iocp != use_iocp)
     {
       priv->use_iocp = use_iocp;
-      g_object_notify_by_pspec (client, props[PROP_USE_IOCP]);
+      g_object_notify_by_pspec (G_OBJECT (client), props[PROP_USE_IOCP]);
     }
 }
