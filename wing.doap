@@ -39,8 +39,8 @@
 
   <repository>
     <GitRepository>
-        <browse rdf:resource="http://git.gnome.org/browse/wing/"/>
-      <location rdf:resource="git://git.gnome.org/wing"/>
+        <browse rdf:resource="https://gitlab.gnome.org/GNOME/wing/"/>
+      <location rdf:resource="https://gitlab.gnome.org/GNOME/wing.git"/>
     </GitRepository>
   </repository>
 
