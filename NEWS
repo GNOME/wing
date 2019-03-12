@@ -1,3 +1,7 @@
+News in 0.1.4
+--------------
+* Fix build with meson 0.50
+
 News in 0.1.2
 --------------
 * Added wing_poll which supports polling for more than 64 handles
