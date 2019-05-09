@@ -163,6 +163,7 @@ threadpool_io_completion (PTP_CALLBACK_INSTANCE instance,
                           PTP_IO                threadpool_io,
                           gpointer              user_data)
 {
+  WingOverlappedData *overlapped_data = overlapped;
   GTask *task;
 
   task = G_TASK (user_data);
@@ -181,8 +182,24 @@ threadpool_io_completion (PTP_CALLBACK_INSTANCE instance,
       g_free (emsg);
     }
 
+  if (g_task_get_cancellable (task) != NULL)
+    g_cancellable_disconnect (g_task_get_cancellable (task),
+                              overlapped_data->cancellable_id);
   g_object_unref (task);
   g_slice_free (WingOverlappedData, overlapped);
+}
+
+static void
+on_cancellable_cancelled (GCancellable *cancellable,
+						  gpointer 		user_data)
+{
+  WingIocpOutputStream *wing_stream;
+  WingIocpOutputStreamPrivate *priv;
+
+  wing_stream = WING_IOCP_OUTPUT_STREAM (user_data);
+  priv = wing_iocp_output_stream_get_instance_private (wing_stream);
+
+  CancelIo (priv->handle);
 }
 
 static void
@@ -206,6 +223,9 @@ wing_iocp_output_stream_write_async (GOutputStream       *stream,
   task = g_task_new (stream, cancellable, callback, user_data);
   g_task_set_priority (task, io_priority);
 
+  if (g_task_return_error_if_cancelled (task))
+    return;
+
   if (priv->handle == INVALID_HANDLE_VALUE)
     {
       g_task_return_new_error (task, G_IO_ERROR,
@@ -219,6 +239,11 @@ wing_iocp_output_stream_write_async (GOutputStream       *stream,
   overlapped = g_slice_new0 (WingOverlappedData);
   overlapped->user_data = task;
   overlapped->callback = threadpool_io_completion;
+
+  if (g_task_get_cancellable (task) != NULL)
+    overlapped->cancellable_id = g_cancellable_connect (g_task_get_cancellable (task),
+                                                        G_CALLBACK (on_cancellable_cancelled),
+                                                        wing_stream, NULL);
 
   StartThreadpoolIo (priv->threadpool_io);
 
@@ -236,6 +261,9 @@ wing_iocp_output_stream_write_async (GOutputStream       *stream,
 
       CancelThreadpoolIo (priv->threadpool_io);
 
+      if (g_task_get_cancellable (task) != NULL)
+        g_cancellable_disconnect (g_task_get_cancellable (task),
+                                  overlapped->cancellable_id);
       g_object_unref (task);
       g_slice_free (WingOverlappedData, overlapped);
     }

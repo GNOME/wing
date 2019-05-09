@@ -28,6 +28,7 @@ G_BEGIN_DECLS
 typedef struct {
   OVERLAPPED overlapped;
   gpointer user_data;
+  gulong cancellable_id;
   void (*callback) (PTP_CALLBACK_INSTANCE instance,
                     PVOID                 ctxt,
                     PVOID                 overlapped,
