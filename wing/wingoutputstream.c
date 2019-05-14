@@ -230,11 +230,26 @@ write_async_ready (HANDLE   handle,
   WingOutputStream *wing_stream;
   WingOutputStreamPrivate *priv;
   GTask *task = user_data;
+  GCancellable *cancellable;
   DWORD nwritten;
   gboolean result;
 
   wing_stream = g_task_get_source_object (task);
   priv = wing_output_stream_get_instance_private (wing_stream);
+
+  cancellable = g_task_get_cancellable (task);
+  if (cancellable != NULL && g_cancellable_is_cancelled (cancellable))
+    {
+      CancelIo (priv->handle);
+      ResetEvent (priv->overlap.hEvent);
+
+      g_task_return_new_error (task, G_IO_ERROR,
+                               G_IO_ERROR_CANCELLED,
+                               "Error reading from handle: the operation is cancelled");
+      g_object_unref (task);
+
+      return G_SOURCE_REMOVE;
+    }
 
   result = GetOverlappedResult (priv->overlap.hEvent, &priv->overlap, &nwritten, FALSE);
   if (!result && GetLastError () == ERROR_IO_INCOMPLETE)
