@@ -1,3 +1,7 @@
+News in 0.1.8
+--------------
+* Fix cancellation of non iocp streams
+
 News in 0.1.6
 --------------
 * Fix cancellation of iocp streams
