@@ -191,22 +191,6 @@ wing_named_pipe_connection_get_property (GObject    *object,
     }
 }
 
-static GInputStream *
-wing_named_pipe_connection_get_input_stream (GIOStream *stream)
-{
-  WingNamedPipeConnection *connection = WING_NAMED_PIPE_CONNECTION (stream);
-
-  return connection->input_stream;
-}
-
-static GOutputStream *
-wing_named_pipe_connection_get_output_stream (GIOStream *stream)
-{
-  WingNamedPipeConnection *connection = WING_NAMED_PIPE_CONNECTION (stream);
-
-  return connection->output_stream;
-}
-
 static void
 wing_named_pipe_connection_constructed (GObject *object)
 {
@@ -242,16 +226,32 @@ wing_named_pipe_connection_constructed (GObject *object)
   G_OBJECT_CLASS (wing_named_pipe_connection_parent_class)->constructed (object);
 }
 
+static GInputStream *
+wing_named_pipe_connection_get_input_stream (GIOStream *stream)
+{
+  WingNamedPipeConnection *connection = WING_NAMED_PIPE_CONNECTION (stream);
+
+  return connection->input_stream;
+}
+
+static GOutputStream *
+wing_named_pipe_connection_get_output_stream (GIOStream *stream)
+{
+  WingNamedPipeConnection *connection = WING_NAMED_PIPE_CONNECTION (stream);
+
+  return connection->output_stream;
+}
+
 static void
 wing_named_pipe_connection_class_init (WingNamedPipeConnectionClass *class)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (class);
   GIOStreamClass *io_class = G_IO_STREAM_CLASS (class);
 
-  gobject_class->constructed = wing_named_pipe_connection_constructed;
   gobject_class->finalize = wing_named_pipe_connection_finalize;
   gobject_class->get_property = wing_named_pipe_connection_get_property;
   gobject_class->set_property = wing_named_pipe_connection_set_property;
+  gobject_class->constructed = wing_named_pipe_connection_constructed;
 
   io_class->get_input_stream = wing_named_pipe_connection_get_input_stream;
   io_class->get_output_stream = wing_named_pipe_connection_get_output_stream;
@@ -365,11 +365,11 @@ get_sid_from_token (HANDLE   token,
   wchar_t *sid_string;
   gchar *sid_utf8;
 
-  if (GetTokenInformation (token,
-                           TokenUser,
-                           user_info,
-                           user_info_length,
-                           &user_info_length) == FALSE)
+  if (!GetTokenInformation (token,
+                            TokenUser,
+                            user_info,
+                            user_info_length,
+                            &user_info_length))
     {
       int errsv = GetLastError ();
 
@@ -394,11 +394,11 @@ get_sid_from_token (HANDLE   token,
 
   user_info = (TOKEN_USER *)g_malloc (user_info_length);
 
-  if (GetTokenInformation (token,
-                           TokenUser,
-                           user_info,
-                           user_info_length,
-                           &user_info_length) == FALSE)
+  if (!GetTokenInformation (token,
+                            TokenUser,
+                            user_info,
+                            user_info_length,
+                            &user_info_length))
     {
       int errsv = GetLastError ();
       gchar *emsg = g_win32_error_message (errsv);
@@ -415,7 +415,7 @@ get_sid_from_token (HANDLE   token,
       return NULL;
     }
 
-  if (ConvertSidToStringSidW (user_info->User.Sid, &sid_string) == FALSE)
+  if (!ConvertSidToStringSidW (user_info->User.Sid, &sid_string))
     {
       int errsv = GetLastError ();
       gchar *emsg = g_win32_error_message (errsv);
@@ -447,7 +447,7 @@ get_user_id (WingNamedPipeConnection   *connection,
   HANDLE  token;
   gchar  *sid;
 
-  if (ImpersonateNamedPipeClient (connection->handle) == FALSE)
+  if (!ImpersonateNamedPipeClient (connection->handle))
     {
       int errsv = GetLastError ();
       gchar *emsg = g_win32_error_message (errsv);
@@ -462,7 +462,7 @@ get_user_id (WingNamedPipeConnection   *connection,
       return NULL;
     }
 
-  if (OpenThreadToken (GetCurrentThread (), TOKEN_QUERY, FALSE, &token) == FALSE)
+  if (!OpenThreadToken (GetCurrentThread (), TOKEN_QUERY, FALSE, &token))
     {
       int errsv = GetLastError ();
       gchar *emsg = g_win32_error_message (errsv);
@@ -474,7 +474,7 @@ get_user_id (WingNamedPipeConnection   *connection,
                    emsg);
       g_free (emsg);
 
-      if (RevertToSelf () == FALSE)
+      if (!RevertToSelf ())
         {
           errsv = GetLastError ();
           emsg = g_win32_error_message (errsv);
@@ -495,7 +495,7 @@ get_user_id (WingNamedPipeConnection   *connection,
   sid = get_sid_from_token (token, error);
   CloseHandle (token);
 
-  if (RevertToSelf () == FALSE)
+  if (!RevertToSelf ())
     {
       int errsv = GetLastError ();
       gchar *emsg = g_win32_error_message (errsv);
