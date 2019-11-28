@@ -242,6 +242,34 @@ wing_named_pipe_connection_get_output_stream (GIOStream *stream)
   return connection->output_stream;
 }
 
+static gboolean
+wing_named_pipe_connection_close (GIOStream     *stream,
+                                  GCancellable  *cancellable,
+                                  GError       **error)
+{
+  WingNamedPipeConnection *connection = WING_NAMED_PIPE_CONNECTION (stream);
+
+  if (connection->output_stream)
+    g_output_stream_close (connection->output_stream, cancellable, NULL);
+
+  if (connection->input_stream)
+    g_input_stream_close (connection->input_stream, cancellable, NULL);
+
+  if (connection->close_handle && connection->handle != INVALID_HANDLE_VALUE)
+    {
+      DisconnectNamedPipe (connection->handle);
+      CloseHandle (connection->handle);
+      connection->handle = INVALID_HANDLE_VALUE;
+    }
+
+  if (connection->threadpool_io != NULL)
+    {
+      WaitForThreadpoolIoCallbacks (connection->threadpool_io, FALSE);
+      CloseThreadpoolIo (connection->threadpool_io);
+      connection->threadpool_io = NULL;
+    }
+}
+
 static void
 wing_named_pipe_connection_class_init (WingNamedPipeConnectionClass *class)
 {
@@ -255,6 +283,7 @@ wing_named_pipe_connection_class_init (WingNamedPipeConnectionClass *class)
 
   io_class->get_input_stream = wing_named_pipe_connection_get_input_stream;
   io_class->get_output_stream = wing_named_pipe_connection_get_output_stream;
+  io_class->close_fn = wing_named_pipe_connection_close;
 
   /**
    * WingNamedPipeConnection:pipe-name:
