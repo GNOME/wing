@@ -46,7 +46,9 @@ gboolean     wing_is_os_64bit          (void);
 
 WING_AVAILABLE_IN_ALL
 gboolean     wing_get_version_number   (gint *major,
-                                        gint *minor);
+                                        gint *minor,
+                                        gint *build,
+                                        gint *product_type);
 
 WING_AVAILABLE_IN_ALL
 gboolean     wing_get_process_memory   (gsize *total_virtual_memory,

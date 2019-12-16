@@ -49,7 +49,9 @@ wing_is_os_64bit (void)
 
 gboolean
 wing_get_version_number (gint *major,
-                         gint *minor)
+                         gint *minor,
+                         gint *build,
+                         gint *product_type)
 {
   typedef NTSTATUS (WINAPI fRtlGetVersion) (PRTL_OSVERSIONINFOEXW);
   OSVERSIONINFOEXW osverinfo;
@@ -70,6 +72,8 @@ wing_get_version_number (gint *major,
 
   *major = osverinfo.dwMajorVersion;
   *minor = osverinfo.dwMinorVersion;
+  *build = osverinfo.dwBuildNumber;
+  *product_type = osverinfo.wProductType;
 
   return TRUE;
 }
