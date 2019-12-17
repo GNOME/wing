@@ -589,6 +589,8 @@ control_handler (DWORD  control,
       set_service_status (service, SERVICE_RUNNING);
       break;
     case SERVICE_CONTROL_INTERROGATE:
+      /* We do nothing with the data so just free it */
+      g_slice_free (IdleEventData, data);
       break;
     case SERVICE_CONTROL_SHUTDOWN:
       /* do not waste time informing the SCM about the state just do it */
