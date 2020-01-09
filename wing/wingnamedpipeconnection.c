@@ -268,6 +268,8 @@ wing_named_pipe_connection_close (GIOStream     *stream,
       CloseThreadpoolIo (connection->threadpool_io);
       connection->threadpool_io = NULL;
     }
+
+  return TRUE;
 }
 
 static void
