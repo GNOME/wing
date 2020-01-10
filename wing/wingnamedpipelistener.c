@@ -210,6 +210,7 @@ wing_named_pipe_listener_new (void)
 
 static gboolean
 create_pipe_from_pipe_data (PipeData  *pipe_data,
+                            gboolean   protect_first_instance,
                             GError   **error)
 {
   SECURITY_ATTRIBUTES sa = { 0, };
@@ -245,7 +246,8 @@ create_pipe_from_pipe_data (PipeData  *pipe_data,
 
   pipe_data->handle = CreateNamedPipeW (pipe_data->pipe_namew,
                                         PIPE_ACCESS_DUPLEX |
-                                        FILE_FLAG_OVERLAPPED,
+                                        FILE_FLAG_OVERLAPPED |
+                                        (protect_first_instance ? FILE_FLAG_FIRST_PIPE_INSTANCE : 0),
                                         PIPE_TYPE_BYTE |
                                         PIPE_READMODE_BYTE |
                                         PIPE_WAIT |
@@ -307,11 +309,22 @@ create_pipe_from_pipe_data (PipeData  *pipe_data,
  * @listener: a #WingNamedPipeListener.
  * @pipe_name: a name for the pipe.
  * @security_descriptor: (allow-none): a security descriptor or %NULL.
+ * @protect_first_instance: if %TRUE, the pipe creation will fail if the pipe already exists
  * @source_object: (allow-none): Optional #GObject identifying this source
  * @error: #GError for error reporting, or %NULL to ignore.
  *
  * Adds @named_pipe to the set of named pipes that we try to accept clients
  * from.
+ *
+ * @security_descriptor must be of the format specified by Microsoft:
+ * https://msdn.microsoft.com/en-us/library/windows/desktop/aa379570(v=vs.85).aspx
+ * or set to %NULL to not set any security descriptor to the pipe.
+ *
+ * @protect_first_instance will cause the first instance of the named pipe to be
+ * created with the FILE_FLAG_FIRST_PIPE_INSTANCE flag specified. This, in turn,
+ * will cause the creation of the pipe to fail if an instance of the pipe already
+ * exists.For more details see FILE_FLAG_FIRST_PIPE_INSTANCE details at:
+ * https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createnamedpipew
  *
  * @security_descriptor must be of the format specified by Microsoft:
  * https://msdn.microsoft.com/en-us/library/windows/desktop/aa379570(v=vs.85).aspx
@@ -328,6 +341,7 @@ gboolean
 wing_named_pipe_listener_add_named_pipe (WingNamedPipeListener  *listener,
                                          const gchar            *pipe_name,
                                          const gchar            *security_descriptor,
+                                         gboolean                protect_first_instance,
                                          GObject                *source_object,
                                          GError                **error)
 {
@@ -340,7 +354,7 @@ wing_named_pipe_listener_add_named_pipe (WingNamedPipeListener  *listener,
   priv = wing_named_pipe_listener_get_instance_private (listener);
 
   pipe_data = pipe_data_new (pipe_name, security_descriptor, source_object);
-  if (!create_pipe_from_pipe_data (pipe_data, error))
+  if (!create_pipe_from_pipe_data (pipe_data, protect_first_instance, error))
     {
       pipe_data_free (pipe_data);
       return FALSE;
@@ -409,7 +423,7 @@ connect_ready (HANDLE   handle,
                                  NULL);
 
       /* Put another pipe to listen so more clients can already connect */
-      if (!create_pipe_from_pipe_data (pipe_data, &error))
+      if (!create_pipe_from_pipe_data (pipe_data, FALSE, &error))
         {
           g_object_unref (connection);
           g_task_return_error (task, error);
@@ -618,7 +632,7 @@ wing_named_pipe_listener_accept (WingNamedPipeListener  *listener,
         *source_object = pipe_data->source_object;
 
       /* Put another pipe to listen so more clients can already connect */
-      if (!create_pipe_from_pipe_data (pipe_data, error))
+      if (!create_pipe_from_pipe_data (pipe_data, FALSE, error))
         {
           g_object_unref (connection);
           connection = NULL;
@@ -676,7 +690,7 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
                                  "use-iocp", priv->use_iocp,
                                  NULL);
 
-      if (!create_pipe_from_pipe_data (pipe_data, &error))
+      if (!create_pipe_from_pipe_data (pipe_data, FALSE, &error))
         {
           g_object_unref (connection);
           g_task_return_error (task, error);

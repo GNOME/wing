@@ -58,6 +58,7 @@ WING_AVAILABLE_IN_ALL
 gboolean                  wing_named_pipe_listener_add_named_pipe (WingNamedPipeListener  *listener,
                                                                    const gchar            *pipe_name,
                                                                    const gchar            *security_descriptor,
+                                                                   gboolean                protect_first_instance,
                                                                    GObject                *source_object,
                                                                    GError                **error);
 
