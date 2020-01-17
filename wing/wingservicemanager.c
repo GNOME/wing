@@ -99,13 +99,37 @@ wing_service_manager_new (void)
 }
 
 static wchar_t *
-get_file_path (void)
+get_file_path (GError **error)
 {
   wchar_t *path;
+  DWORD len = 0;
 
-  path = g_malloc (MAX_PATH);
+  path = g_new (wchar_t, MAX_PATH + 2);
 
-  GetModuleFileNameW (NULL, path, MAX_PATH);
+  len = GetModuleFileNameW (NULL, path + 1, MAX_PATH);
+
+  /* Depending on failure modes, it can fail with 0 or
+   * the specified length. See microsoft docs for more info at
+   * https://docs.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulefilenamew 
+   */
+  if (len == 0 || len == MAX_PATH) 
+    {
+      int errsv = GetLastError ();
+      gchar *emsg = g_win32_error_message (errsv);
+
+      g_set_error (error, G_IO_ERROR,
+                   g_io_error_from_win32_error (errsv),
+                   emsg);
+      g_free (emsg);
+      g_free (path);
+      return NULL;
+    }
+
+  /* Escape the executable name between '"' */
+  path[0] = L'"';
+  path[len + 1] = L'"';
+  path[len + 2] = L'\0';
+
   return path;
 }
 
@@ -131,7 +155,10 @@ wing_service_manager_install_service (WingServiceManager           *manager,
   if (sc == NULL)
     return FALSE;
 
-  path = get_file_path ();
+  path = get_file_path (error);
+  if (path == NULL)
+    return FALSE;
+
   service_flags = wing_service_get_flags (service);
   service_type = SERVICE_WIN32_OWN_PROCESS;
   if (service_flags & WING_SERVICE_IS_INTERACTIVE)
