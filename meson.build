@@ -1,5 +1,5 @@
 project('wing', 'c',
-        version: '0.2.0',
+        version: '0.2.2',
         default_options: [
           'buildtype=debugoptimized',
           'warning_level=2'

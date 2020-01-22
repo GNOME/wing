@@ -1,3 +1,9 @@
+News in 0.2.2
+--------------
+* Improve utils to get build number and type for OS version
+* New argument to create pipes with FILE_FLAG_FIRST_PIPE_INSTANCE
+* Misc bugfixes
+
 News in 0.2.0
 --------------
 * Properly close named pipe connection
