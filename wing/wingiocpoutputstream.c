@@ -173,7 +173,7 @@ threadpool_io_completion (PTP_CALLBACK_INSTANCE instance,
     }
   else
     {
-      gchar *emsg = g_win32_error_message (result);;
+      gchar *emsg = g_win32_error_message (result);
 
       g_task_return_new_error (task, G_IO_ERROR,
                                g_io_error_from_win32_error (result),
