@@ -198,8 +198,7 @@ wing_credentials_is_same_user (WingCredentials *credentials,
   g_return_val_if_fail (WING_IS_CREDENTIALS (credentials), FALSE);
   g_return_val_if_fail (WING_IS_CREDENTIALS (other_credentials), FALSE);
 
-  return credentials->pid == other_credentials->pid &&
-         g_strcmp0 (credentials->sid, other_credentials->sid) == 0;
+  return g_strcmp0 (credentials->sid, other_credentials->sid) == 0;
 }
 
 /**
