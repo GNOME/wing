@@ -19,7 +19,7 @@
 #include "wingservice-private.h"
 
 #include <gio/gio.h>
-#include <Windows.h>
+#include <windows.h>
 
 #define STOP_SERVICE_NUMBERS_OF_CHECKS_PER_SEC 10
 

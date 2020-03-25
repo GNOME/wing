@@ -18,7 +18,7 @@
 #include "wingutils.h"
 
 #include <windows.h>
-#include <Psapi.h>
+#include <psapi.h>
 
 gboolean
 wing_is_wow_64 (void)

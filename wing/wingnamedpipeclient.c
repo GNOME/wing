@@ -19,7 +19,7 @@
 #include "wingnamedpipeclient.h"
 #include "wingnamedpipeconnection.h"
 
-#include <Windows.h>
+#include <windows.h>
 
 /**
  * SECTION:wingnamedpipeclient

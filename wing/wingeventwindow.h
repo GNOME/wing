@@ -23,7 +23,7 @@
 #include <glib-object.h>
 #include <wing/wingversionmacros.h>
 
-#include <Windows.h>
+#include <windows.h>
 
 G_BEGIN_DECLS
 

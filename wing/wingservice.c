@@ -19,8 +19,8 @@
 #include "wingservice-private.h"
 #include "wingservicemanager.h"
 
-#include <Windows.h>
-#include <Winuser.h>
+#include <windows.h>
+#include <winuser.h>
 #include <dbt.h>
 
 #define WING_SERVICE_STARTUP 256

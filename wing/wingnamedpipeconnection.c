@@ -28,7 +28,7 @@
 #include <gio/gio.h>
 
 #include <windows.h>
-#include <Sddl.h>
+#include <sddl.h>
 
 /**
  * SECTION:wingnamedpipeconnection
