@@ -1,16 +1,15 @@
-image: registry.gitlab.gnome.org/gnome/glib/master:v6
-
 stages:
   - build
 
-cache:
-  paths:
-    - _ccache/
-
 variables:
   MESON_TEST_TIMEOUT_MULTIPLIER: 2
+  DEPS_MINGW: gcc meson mingw64-gcc mingw64-pkg-config mingw64-glib2
 
 vs2017-x64:
+  image: registry.gitlab.gnome.org/gnome/glib/master:v6
+  cache:
+    paths:
+      - _ccache/
   stage: build
   except:
     - tags
@@ -23,3 +22,18 @@ vs2017-x64:
     when: always
     paths:
       - _build/meson-logs
+
+mingw-x64:
+  image: fedora:latest
+  stage: build
+  before_script:
+    - dnf install -y $DEPS_MINGW
+  script:
+    - mkdir _build-mingw64 && cd _build-mingw64
+    - mingw64-meson
+    - ninja 
+  artifacts:
+    paths:
+      - _build-mingw64/meson-logs
+    when: always
+    expire_in: 1 week
