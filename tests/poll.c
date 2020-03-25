@@ -16,8 +16,6 @@
  * along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _WIN32_WINNT 0x0600
-
 #include <Winsock2.h>
 #include <wing/wing.h>
 #include <glib.h>

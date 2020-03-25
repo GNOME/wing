@@ -55,6 +55,7 @@ conf.set('includedir', wing_includedir)
 conf.set('VERSION', wing_version)
 
 add_project_arguments('-DG_LOG_USE_STRUCTURED=1', language: 'c')
+add_project_arguments('-D_WIN32_WINNT=0x0601', language: 'c')
 
 # Compiler flags
 if cc.get_id() == 'msvc'
