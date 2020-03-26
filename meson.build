@@ -1,11 +1,13 @@
-project('wing', 'c',
-        version: '0.3.1',
-        default_options: [
-          'buildtype=debugoptimized',
-          'warning_level=2'
-        ],
-        license: 'LGPLv2.1+',
-        meson_version: '>= 0.39.0')
+project(
+  'wing', 'c',
+  version: '0.3.1',
+  default_options: [
+    'buildtype=debugoptimized',
+    'warning_level=2'
+  ],
+  license: 'LGPLv2.1+',
+  meson_version: '>= 0.39.0'
+)
 
 wing_version = meson.project_version()
 version_array = wing_version.split('.')
