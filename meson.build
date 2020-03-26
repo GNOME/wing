@@ -101,12 +101,8 @@ elif cc.get_id() == 'gcc' or cc.get_id() == 'clang'
 else
   test_cflags = []
 endif
-common_flags = []
-foreach cflag: test_cflags
-  if cc.has_argument(cflag)
-    common_flags += [ cflag ]
-  endif
-endforeach
+
+common_cflags = cc.get_supported_arguments(test_cflags)
 
 extra_args= []
 # Detect and set symbol visibility
