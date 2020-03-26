@@ -40,7 +40,6 @@ wing_includedir_real = wing_api_name / meson.project_name()
 wing_datadir = wing_prefix / get_option('datadir')
 
 cc = meson.get_compiler('c')
-host_system = host_machine.system()
 
 conf = configuration_data()
 
