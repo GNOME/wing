@@ -1,3 +1,10 @@
+News in 0.3.0
+--------------
+* Support building on mingw
+* CI integration cross compiling with mingw
+* Removed wing_poll. Integrated in glib 2.59.1
+* Misc bugfixes
+
 News in 0.2.2
 --------------
 * Improve utils to get build number and type for OS version
