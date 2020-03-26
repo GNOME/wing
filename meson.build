@@ -43,17 +43,6 @@ wing_datadir = wing_prefix / get_option('datadir')
 
 cc = meson.get_compiler('c')
 
-conf = configuration_data()
-
-# Compat variables for pkgconfig
-conf.set('prefix', wing_prefix)
-conf.set('exec_prefix', wing_prefix)
-conf.set('libdir', wing_libdir)
-conf.set('includedir', wing_includedir)
-
-# Version macros
-conf.set('VERSION', wing_version)
-
 add_project_arguments('-DG_LOG_USE_STRUCTURED=1', language: 'c')
 add_project_arguments('-D_WIN32_WINNT=0x0601', language: 'c')
 
@@ -116,7 +105,6 @@ core_inc = include_directories('.')
 
 # Required dependencies
 glib_req = '2.44.0'
-conf.set('GLIB_REQUIRED', glib_req)
 glib = dependency('glib-2.0', version: '>=' + glib_req, fallback: ['glib', 'libglib_dep'])
 gobject = dependency('gobject-2.0', version: '>=' + glib_req, fallback: ['glib', 'libgobject_dep'])
 gmodule = dependency('gmodule-2.0', version: '>=' + glib_req, fallback: ['glib', 'libgmodule_dep'])
