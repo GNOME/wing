@@ -1,6 +1,5 @@
 unit_tests = [
   'named-pipe',
-  'poll',
 ]
 
 winsock2_dep = cc.find_library('ws2_32')
