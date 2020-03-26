@@ -6,7 +6,7 @@ project(
     'warning_level=2'
   ],
   license: 'LGPLv2.1+',
-  meson_version: '>= 0.39.0'
+  meson_version: '>= 0.49.0'
 )
 
 wing_version = meson.project_version()
