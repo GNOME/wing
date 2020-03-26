@@ -34,11 +34,10 @@ revision = wing_interface_age
 libversion = '@0@.@1@.@2@'.format(soversion, current, revision)
 
 wing_prefix = get_option('prefix')
-wing_libdir = join_paths(wing_prefix, get_option('libdir'))
-wing_includedir = join_paths(wing_prefix, get_option('includedir'))
-wing_includedir_real = join_paths(wing_api_name,
-                                  meson.project_name())
-wing_datadir = join_paths(wing_prefix, get_option('datadir'))
+wing_libdir = wing_prefix / get_option('libdir')
+wing_includedir = wing_prefix / get_option('includedir')
+wing_includedir_real = wing_api_name / meson.project_name()
+wing_datadir = wing_prefix / get_option('datadir')
 
 cc = meson.get_compiler('c')
 host_system = host_machine.system()
