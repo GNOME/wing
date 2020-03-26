@@ -5,7 +5,6 @@ headers = [
   'winginputstream.h',
   'wingiocpinputstream.h',
   'wingiocpoutputstream.h',
-  'wingversionmacros.h',
   'wingnamedpipeclient.h',
   'wingnamedpipeconnection.h',
   'wingnamedpipelistener.h',
@@ -33,6 +32,18 @@ sources = [
   'wingsource.c',
   'wingutils.c',
 ]
+
+version_cdata = configuration_data()
+version_cdata.set('WING_MAJOR_VERSION', wing_major_version)
+version_cdata.set('WING_MINOR_VERSION', wing_minor_version)
+version_cdata.set('WING_MICRO_VERSION', wing_micro_version)
+
+configure_file(
+  input : 'wingversionmacros.h.in',
+  output : 'wingversionmacros.h',
+  install_dir : wing_includedir,
+  configuration : version_cdata
+)
 
 install_headers(headers, subdir: wing_includedir_real)
 

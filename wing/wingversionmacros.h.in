@@ -20,6 +20,16 @@
 #ifndef WING_VERSION_MACROS_H
 #define WING_VERSION_MACROS_H
 
+#define WING_MAJOR_VERSION (@WING_MAJOR_VERSION@)
+#define WING_MINOR_VERSION (@WING_MINOR_VERSION@)
+#define WING_MICRO_VERSION (@WING_MICRO_VERSION@)
+
+#define WING_CHECK_VERSION(major, minor, micro) \
+    (WING_MAJOR_VERSION > (major) || \
+    (WING_MAJOR_VERSION == (major) && WING_MINOR_VERSION > (minor)) || \
+    (WING_MAJOR_VERSION == (major) && WING_MINOR_VERSION == (minor) && \
+     WING_MICRO_VERSION >= (micro)))
+
 #ifndef _WING_EXTERN
 #define _WING_EXTERN extern
 #endif
