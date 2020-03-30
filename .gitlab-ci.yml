@@ -6,7 +6,6 @@ variables:
   DEPS_MINGW: gcc meson mingw64-gcc mingw64-pkg-config mingw64-glib2
 
 vs2017-x64:
-  image: registry.gitlab.gnome.org/gnome/glib/master:v6
   cache:
     paths:
       - _ccache/
