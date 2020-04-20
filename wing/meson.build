@@ -41,7 +41,7 @@ version_cdata.set('WING_MICRO_VERSION', wing_micro_version)
 configure_file(
   input : 'wingversionmacros.h.in',
   output : 'wingversionmacros.h',
-  install_dir : wing_includedir,
+  install_dir : wing_includedir / wing_includedir_real,
   configuration : version_cdata
 )
 
