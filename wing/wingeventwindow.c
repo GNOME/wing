@@ -40,6 +40,7 @@ struct _WingEventWindow
 
   gchar *name;
   wchar_t *namew;
+  gboolean track_clipboard;
   HWND hwnd;
   guint watch_id;
   GIOChannel *channel;
@@ -50,6 +51,7 @@ enum
 {
     PROP_0,
     PROP_NAME,
+    PROP_TRACK_CLIPBOARD,
     LAST_PROP
 };
 
@@ -130,6 +132,9 @@ wing_event_window_get_property (GObject    *object,
     case PROP_NAME:
       g_value_set_string (value, window->name);
       break;
+    case PROP_TRACK_CLIPBOARD:
+      g_value_set_boolean (value, window->track_clipboard);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -150,6 +155,9 @@ wing_event_window_set_property (GObject      *object,
       window->name = g_value_dup_string (value);
       if (window->name != NULL)
         window->namew = g_utf8_to_utf16 (window->name, -1, NULL, NULL, NULL);
+      break;
+    case PROP_TRACK_CLIPBOARD:
+      window->track_clipboard = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -257,6 +265,14 @@ wing_event_window_class_init (WingEventWindowClass *klass)
                          G_PARAM_READWRITE |
                          G_PARAM_CONSTRUCT_ONLY);
 
+  props[PROP_TRACK_CLIPBOARD] =
+    g_param_spec_boolean ("track-clipboard",
+                          "Track clipboard",
+                          "Track clipboard",
+                          FALSE,
+                          G_PARAM_READWRITE |
+                          G_PARAM_CONSTRUCT_ONLY);
+
   g_object_class_install_properties (object_class, LAST_PROP, props);
 }
 
@@ -304,6 +320,20 @@ wing_event_window_initable_init (GInitable     *initable,
       return FALSE;
     }
 
+  if (window->track_clipboard &&
+      !AddClipboardFormatListener (window->hwnd))
+    {
+      gchar *err_msg;
+
+      err_msg = g_win32_error_message (GetLastError ());
+
+      g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                   "Could not add clipboard format listener: %s",
+                   err_msg);
+      g_free (err_msg);
+      return FALSE;
+    }
+
   /* Special style to remove the application from the Windows taskbar */
   ShowWindow (window->hwnd, SW_HIDE);
   style = GetWindowLong (window->hwnd, GWL_EXSTYLE);
@@ -327,11 +357,13 @@ wing_event_window_initable_iface_init (GInitableIface *iface)
 
 WingEventWindow *
 wing_event_window_new (const gchar  *name,
+                       gboolean      track_clipboard,
                        GError      **error)
 {
   return g_initable_new (WING_TYPE_EVENT_WINDOW,
                          NULL, error,
                          "name", name,
+                         "track-clipboard", track_clipboard,
                          NULL);
 }
 

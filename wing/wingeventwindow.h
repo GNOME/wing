@@ -39,6 +39,7 @@ typedef gboolean (* WingEventCallback)    (WingEventWindow *window,
 
 WING_AVAILABLE_IN_ALL
 WingEventWindow         *wing_event_window_new             (const gchar       *name,
+                                                            gboolean           track_clipboard,
                                                             GError           **error);
 
 WING_AVAILABLE_IN_ALL
