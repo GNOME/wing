@@ -43,6 +43,9 @@ WingEventWindow         *wing_event_window_new             (const gchar       *n
                                                             GError           **error);
 
 WING_AVAILABLE_IN_ALL
+HWND                     wing_event_window_get_hwnd        (WingEventWindow   *window);
+
+WING_AVAILABLE_IN_ALL
 void                     wing_event_window_connect         (WingEventWindow   *window,
                                                             guint              message,
                                                             WingEventCallback  callback,

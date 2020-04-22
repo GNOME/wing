@@ -367,6 +367,14 @@ wing_event_window_new (const gchar  *name,
                          NULL);
 }
 
+HWND
+wing_event_window_get_hwnd (WingEventWindow *window)
+{
+  g_return_val_if_fail (WING_IS_EVENT_WINDOW (window), NULL);
+
+  return window->hwnd;
+}
+
 void
 wing_event_window_connect (WingEventWindow   *window,
                            guint              message,
@@ -375,11 +383,11 @@ wing_event_window_connect (WingEventWindow   *window,
 {
   Message *m;
 
-  g_return_if_fail(WING_IS_EVENT_WINDOW(window));
-  g_return_if_fail(callback != NULL);
+  g_return_if_fail (WING_IS_EVENT_WINDOW (window));
+  g_return_if_fail (callback != NULL);
 
-  m = create_message(callback, user_data);
-  g_hash_table_insert(window->messages, GUINT_TO_POINTER(message), m);
+  m = create_message (callback, user_data);
+  g_hash_table_insert (window->messages, GUINT_TO_POINTER (message), m);
 }
 
-/* ex:set ts=4 et: */
+/* ex:set ts=2 et: */
