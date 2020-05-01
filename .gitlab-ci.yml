@@ -13,11 +13,11 @@ vs2017-x64:
   except:
     - tags
   tags:
-    - win32
+    - win32-ps
   script:
     - .gitlab-ci/test-msvc.bat
   artifacts:
-    name: "wing-%CI_JOB_NAME%-%CI_COMMIT_REF_NAME%"
+    name: "wing-${env:CI_JOB_NAME}-${env:CI_COMMIT_REF_NAME}"
     when: always
     paths:
       - _build/meson-logs
