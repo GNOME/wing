@@ -67,6 +67,9 @@ gboolean     wing_overlap_wait_result  (HANDLE           hfile,
                                         DWORD           *transferred,
                                         GCancellable    *cancellable);
 
+WING_AVAILABLE_IN_ALL
+gboolean     wing_get_windows_session_locked (void);
+
 G_END_DECLS
 
 #endif /* WING_UTILS_H */

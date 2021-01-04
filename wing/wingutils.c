@@ -19,6 +19,7 @@
 
 #include <windows.h>
 #include <psapi.h>
+#include <wtsapi32.h>
 
 gboolean
 wing_is_wow_64 (void)
@@ -181,4 +182,54 @@ end:
     g_cancellable_release_fd (cancellable);
 
   return result;
+}
+
+gboolean
+wing_get_windows_session_locked (void)
+{
+  DWORD console_sid;
+  WTS_INFO_CLASS wtsic = WTSSessionInfoEx;
+  LPTSTR wts_buffer = NULL;
+  WTSINFOEXW *wts_info = NULL;
+  DWORD wts_bytes_ret = 0;
+  gint major;
+  gint minor;
+  gint build;
+  gint product_type;
+  gboolean res = FALSE;
+
+  console_sid = WTSGetActiveConsoleSessionId ();
+
+  if (!WTSQuerySessionInformation (WTS_CURRENT_SERVER_HANDLE, console_sid, wtsic, &wts_buffer, &wts_bytes_ret))
+    {
+      g_warning ("WTSQuerySessionInformation failed (0x%X)", GetLastError ());
+      return res;
+    }
+
+  if (wts_bytes_ret == 0)
+    {
+      g_warning ("WTSQuerySessionInformation returned 0 bytes");
+      WTSFreeMemory (wts_buffer);
+      return res;
+    }
+
+  wts_info = (WTSINFOEXW *)wts_buffer;
+  if (wts_info->Level != 1)
+    {
+      g_warning ("Unexpected level for WTSInfoExLevel %u (expected: 1)", wts_info->Level);
+      WTSFreeMemory (wts_buffer);
+      return res;
+    }
+
+  /* On Windows 7/Server 2008 R2 the flag for the session state is swapped (WTS_SESSIONSTATE_UNLOCK means that session is locked)
+   * https://docs.microsoft.com/en-us/windows/desktop/api/wtsapi32/ns-wtsapi32-_wtsinfoex_level1_a
+   */
+  if (wing_get_version_number(&major, &minor, &build, &product_type) && (major == 6 && minor == 1))
+    res = (wts_info->Data.WTSInfoExLevel1.SessionFlags == WTS_SESSIONSTATE_UNLOCK);
+  else
+    res = (wts_info->Data.WTSInfoExLevel1.SessionFlags == WTS_SESSIONSTATE_LOCK);
+
+  WTSFreeMemory (wts_buffer);
+
+  return res;
 }
