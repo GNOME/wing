@@ -224,7 +224,10 @@ wing_iocp_output_stream_write_async (GOutputStream       *stream,
   g_task_set_priority (task, io_priority);
 
   if (g_task_return_error_if_cancelled (task))
-    return;
+    {
+      g_object_unref (task);
+      return;
+    }
 
   if (priv->handle == INVALID_HANDLE_VALUE)
     {
