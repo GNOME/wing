@@ -21,6 +21,7 @@
 #include "wingnamedpipeconnection.h"
 #include "winginputstream.h"
 #include "wingoutputstream.h"
+#include "wingthreadpoolio.h"
 #include "wingiocpinputstream.h"
 #include "wingiocpoutputstream.h"
 #include "wingutils.h"
@@ -56,7 +57,7 @@ struct _WingNamedPipeConnection
   GOutputStream *output_stream;
 
   gboolean use_iocp;
-  PTP_IO threadpool_io;
+  WingThreadPoolIo *thread_pool_io;
 };
 
 struct _WingNamedPipeConnectionClass
@@ -80,25 +81,6 @@ static GParamSpec *props[LAST_PROP];
 
 G_DEFINE_TYPE (WingNamedPipeConnection, wing_named_pipe_connection, G_TYPE_IO_STREAM)
 
-static void CALLBACK
-threadpool_io_completion (PTP_CALLBACK_INSTANCE instance,
-                          PVOID                 ctxt,
-                          PVOID                 overlapped,
-                          ULONG                 result,
-                          ULONG_PTR             number_of_bytes_transferred,
-                          PTP_IO                threadpool_io)
-{
-  WingOverlappedData *overlapped_data = (WingOverlappedData *) overlapped;
-
-  overlapped_data->callback (instance,
-                             ctxt,
-                             overlapped,
-                             result,
-                             number_of_bytes_transferred,
-                             threadpool_io,
-                             overlapped_data->user_data);
-}
-
 static void
 wing_named_pipe_connection_finalize (GObject *object)
 {
@@ -112,17 +94,20 @@ wing_named_pipe_connection_finalize (GObject *object)
   if (connection->output_stream)
     g_object_unref (connection->output_stream);
 
-  if (connection->close_handle && connection->handle != INVALID_HANDLE_VALUE)
+  if (connection->close_handle)
     {
-      DisconnectNamedPipe (connection->handle);
-      CloseHandle (connection->handle);
+      if (connection->thread_pool_io != NULL)
+        {
+          wing_thread_pool_io_close_handle(connection->thread_pool_io, NULL);
+        }
+      else if (connection->handle != INVALID_HANDLE_VALUE)
+        {
+          DisconnectNamedPipe (connection->handle);
+          CloseHandle (connection->handle);
+        }
     }
 
-  if (connection->threadpool_io != NULL)
-    {
-      WaitForThreadpoolIoCallbacks (connection->threadpool_io, FALSE);
-      CloseThreadpoolIo (connection->threadpool_io);
-    }
+  g_clear_pointer (&connection->thread_pool_io, wing_thread_pool_io_unref);
 
   G_OBJECT_CLASS (wing_named_pipe_connection_parent_class)->finalize (object);
 }
@@ -199,27 +184,24 @@ wing_named_pipe_connection_constructed (GObject *object)
   if (connection->handle != NULL &&
       connection->handle != INVALID_HANDLE_VALUE)
     {
-      if (!connection->use_iocp)
+      if (connection->use_iocp)
+        {
+          connection->thread_pool_io = wing_thread_pool_io_new (connection->handle);
+          if (connection->thread_pool_io != NULL)
+            {
+              connection->input_stream = wing_iocp_input_stream_new (FALSE, connection->thread_pool_io);
+              connection->output_stream = wing_iocp_output_stream_new (FALSE, connection->thread_pool_io);
+            }
+          else
+           {
+             g_info ("Failed to create thread pool io, falling back to not iocp version");
+           }
+        }
+
+      if (!connection->thread_pool_io)
         {
           connection->input_stream = wing_input_stream_new (connection->handle, FALSE);
           connection->output_stream = wing_output_stream_new (connection->handle, FALSE);
-        }
-      else
-        {
-          connection->threadpool_io = CreateThreadpoolIo (connection->handle, threadpool_io_completion, NULL, NULL);
-          if (connection->threadpool_io == NULL)
-            {
-              gchar *emsg;
-
-              emsg = g_win32_error_message (GetLastError ());
-              g_warning ("Failed to create thread pool IO: %s", emsg);
-              g_free (emsg);
-
-              g_assert_not_reached ();
-            }
-
-          connection->input_stream = wing_iocp_input_stream_new (connection->handle, FALSE, connection->threadpool_io);
-          connection->output_stream = wing_iocp_output_stream_new (connection->handle, FALSE, connection->threadpool_io);
         }
     }
 
@@ -255,19 +237,22 @@ wing_named_pipe_connection_close (GIOStream     *stream,
   if (connection->input_stream)
     g_input_stream_close (connection->input_stream, cancellable, NULL);
 
-  if (connection->close_handle && connection->handle != INVALID_HANDLE_VALUE)
+  if (connection->close_handle)
     {
-      DisconnectNamedPipe (connection->handle);
-      CloseHandle (connection->handle);
+      if (connection->thread_pool_io != NULL)
+        {
+          wing_thread_pool_io_close_handle(connection->thread_pool_io, NULL);
+        }
+      else if (connection->handle != INVALID_HANDLE_VALUE)
+        {
+          DisconnectNamedPipe (connection->handle);
+          CloseHandle (connection->handle);
+        }
+
       connection->handle = INVALID_HANDLE_VALUE;
     }
 
-  if (connection->threadpool_io != NULL)
-    {
-      WaitForThreadpoolIoCallbacks (connection->threadpool_io, FALSE);
-      CloseThreadpoolIo (connection->threadpool_io);
-      connection->threadpool_io = NULL;
-    }
+  g_clear_pointer (&connection->thread_pool_io, wing_thread_pool_io_unref);
 
   return TRUE;
 }

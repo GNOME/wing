@@ -36,14 +36,12 @@
   */
 
 typedef struct {
-  HANDLE handle;
   gboolean close_handle;
-  PTP_IO threadpool_io;
+  WingThreadPoolIo *thread_pool_io;
 } WingIocpOutputStreamPrivate;
 
 enum {
   PROP_0,
-  PROP_HANDLE,
   PROP_CLOSE_HANDLE,
   PROP_THREADPOOL_IO,
   LAST_PROP
@@ -52,6 +50,26 @@ enum {
 static GParamSpec *props[LAST_PROP];
 
 G_DEFINE_TYPE_WITH_PRIVATE (WingIocpOutputStream, wing_iocp_output_stream, G_TYPE_OUTPUT_STREAM)
+
+static void
+wing_iocp_output_stream_finalize (GObject *object)
+{
+  WingIocpOutputStream *wing_stream;
+  WingIocpOutputStreamPrivate *priv;
+
+  wing_stream = WING_IOCP_OUTPUT_STREAM (object);
+  priv = wing_iocp_output_stream_get_instance_private (wing_stream);
+
+  if (priv->thread_pool_io)
+    {
+      if (priv->close_handle)
+        wing_thread_pool_io_close_handle (priv->thread_pool_io, NULL);
+
+      wing_thread_pool_io_unref (priv->thread_pool_io);
+    }
+
+  G_OBJECT_CLASS (wing_iocp_output_stream_parent_class)->finalize (object);
+}
 
 static void
 wing_iocp_output_stream_set_property (GObject         *object,
@@ -67,16 +85,12 @@ wing_iocp_output_stream_set_property (GObject         *object,
 
   switch (prop_id)
     {
-    case PROP_HANDLE:
-      priv->handle = g_value_get_pointer (value);
-      break;
-
     case PROP_CLOSE_HANDLE:
       priv->close_handle = g_value_get_boolean (value);
       break;
 
     case PROP_THREADPOOL_IO:
-      priv->threadpool_io = g_value_get_pointer (value);
+      priv->thread_pool_io = g_value_dup_boxed (value);
       break;
 
     default:
@@ -99,14 +113,11 @@ wing_iocp_output_stream_get_property (GObject    *object,
 
   switch (prop_id)
     {
-    case PROP_HANDLE:
-      g_value_set_pointer (value, priv->handle);
-      break;
     case PROP_CLOSE_HANDLE:
       g_value_set_boolean (value, priv->close_handle);
       break;
     case PROP_THREADPOOL_IO:
-      g_value_set_pointer (value, priv->threadpool_io);
+      g_value_set_boxed (value, priv->thread_pool_io);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -128,30 +139,12 @@ wing_iocp_output_stream_close (GOutputStream  *stream,
   if (!priv->close_handle)
     return TRUE;
 
-  res = CloseHandle (priv->handle);
-  if (!res)
-    {
-      int errsv = GetLastError ();
-      gchar *emsg = g_win32_error_message (errsv);
+  res = wing_thread_pool_io_close_handle (priv->thread_pool_io, error);
 
-      g_set_error (error, G_IO_ERROR,
-                   g_io_error_from_win32_error (errsv),
-                   "Error closing handle: %s",
-                   emsg);
-      g_free (emsg);
-      return FALSE;
-    }
+  if (res)
+    g_clear_pointer (&priv->thread_pool_io, wing_thread_pool_io_unref);
 
-  priv->handle = INVALID_HANDLE_VALUE;
-
-  if (priv->threadpool_io != NULL)
-    {
-      WaitForThreadpoolIoCallbacks (priv->threadpool_io, FALSE);
-      CloseThreadpoolIo (priv->threadpool_io);
-      priv->threadpool_io = NULL;
-    }
-
-  return TRUE;
+  return res;
 }
 
 static void
@@ -199,7 +192,7 @@ on_cancellable_cancelled (GCancellable *cancellable,
   wing_stream = WING_IOCP_OUTPUT_STREAM (user_data);
   priv = wing_iocp_output_stream_get_instance_private (wing_stream);
 
-  CancelIo (priv->handle);
+  CancelIo (wing_thread_pool_get_handle (priv->thread_pool_io));
 }
 
 static void
@@ -216,6 +209,7 @@ wing_iocp_output_stream_write_async (GOutputStream       *stream,
   WingIocpOutputStream *wing_stream;
   WingIocpOutputStreamPrivate *priv;
   int errsv;
+  HANDLE handle;
 
   wing_stream = WING_IOCP_OUTPUT_STREAM (stream);
   priv = wing_iocp_output_stream_get_instance_private (wing_stream);
@@ -229,7 +223,8 @@ wing_iocp_output_stream_write_async (GOutputStream       *stream,
       return;
     }
 
-  if (priv->handle == INVALID_HANDLE_VALUE)
+  handle = wing_thread_pool_get_handle (priv->thread_pool_io);
+  if (handle == INVALID_HANDLE_VALUE)
     {
       g_task_return_new_error (task, G_IO_ERROR,
                                G_IO_ERROR_CLOSED,
@@ -248,9 +243,9 @@ wing_iocp_output_stream_write_async (GOutputStream       *stream,
                                                         G_CALLBACK (on_cancellable_cancelled),
                                                         wing_stream, NULL);
 
-  StartThreadpoolIo (priv->threadpool_io);
+  wing_thread_pool_io_start (priv->thread_pool_io);
 
-  WriteFile (priv->handle, buffer, (DWORD) count, NULL, (OVERLAPPED *) overlapped);
+  WriteFile (handle, buffer, (DWORD) count, NULL, (OVERLAPPED *) overlapped);
   errsv = GetLastError ();
   if (errsv != NO_ERROR && errsv != ERROR_IO_PENDING)
     {
@@ -262,7 +257,7 @@ wing_iocp_output_stream_write_async (GOutputStream       *stream,
                                emsg);
       g_free (emsg);
 
-      CancelThreadpoolIo (priv->threadpool_io);
+      wing_thread_pool_io_cancel (priv->thread_pool_io);
 
       if (g_task_get_cancellable (task) != NULL)
         g_cancellable_disconnect (g_task_get_cancellable (task),
@@ -285,6 +280,7 @@ wing_iocp_output_stream_write (GOutputStream  *stream,
   DWORD nbytes, nwritten;
   OVERLAPPED overlap = { 0, };
   gssize retval = -1;
+  HANDLE handle;
 
   wing_stream = WING_IOCP_OUTPUT_STREAM (stream);
   priv = wing_iocp_output_stream_get_instance_private (wing_stream);
@@ -300,6 +296,8 @@ wing_iocp_output_stream_write (GOutputStream  *stream,
   overlap.hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
   g_return_val_if_fail (overlap.hEvent != NULL, -1);
 
+  handle = wing_thread_pool_get_handle (priv->thread_pool_io);
+
   /* This prevents the I/O completion port to be notified.
    * It is described in the documentation of the GetQueuedCompletionStatus
    * function, in the section related to the lpOverlapped parameter
@@ -310,7 +308,7 @@ wing_iocp_output_stream_write (GOutputStream  *stream,
   overlap.hEvent = (HANDLE) ((gint) overlap.hEvent | 0x1);
 #endif
 
-  res = WriteFile (priv->handle, buffer, nbytes, &nwritten, &overlap);
+  res = WriteFile (handle, buffer, nbytes, &nwritten, &overlap);
   if (res)
     retval = nwritten;
   else
@@ -318,7 +316,7 @@ wing_iocp_output_stream_write (GOutputStream  *stream,
       int errsv = GetLastError ();
 
       if (errsv == ERROR_IO_PENDING &&
-          wing_overlap_wait_result (priv->handle,
+          wing_overlap_wait_result (handle,
                                     &overlap, &nwritten,
                                     cancellable))
         {
@@ -360,25 +358,13 @@ wing_iocp_output_stream_class_init (WingIocpOutputStreamClass *klass)
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GOutputStreamClass *stream_class = G_OUTPUT_STREAM_CLASS (klass);
 
+  gobject_class->finalize = wing_iocp_output_stream_finalize;
   gobject_class->get_property = wing_iocp_output_stream_get_property;
   gobject_class->set_property = wing_iocp_output_stream_set_property;
 
   stream_class->close_fn = wing_iocp_output_stream_close;
   stream_class->write_async = wing_iocp_output_stream_write_async;
   stream_class->write_fn = wing_iocp_output_stream_write;
-
-   /**
-   * WingIocpOutputStream:handle:
-   *
-   * The file handle that the stream writes to.
-   */
-  props[PROP_HANDLE] =
-    g_param_spec_pointer ("handle",
-                          "File handle",
-                          "The file handle to write to",
-                          G_PARAM_READWRITE |
-                          G_PARAM_CONSTRUCT_ONLY |
-                          G_PARAM_STATIC_STRINGS);
 
   /**
    * WingIocpOutputStream:close-handle:
@@ -400,12 +386,13 @@ wing_iocp_output_stream_class_init (WingIocpOutputStreamClass *klass)
    * perform async I/O with completion ports.
    */
   props[PROP_THREADPOOL_IO] =
-    g_param_spec_pointer ("threadpool-io",
-                          "Threadpool I/O object",
-                          "The threadpool I/O object, returned by CreateThreadpoolIo, used to perform async I / O with completion ports",
-                          G_PARAM_READABLE |
-                          G_PARAM_WRITABLE |
-                          G_PARAM_STATIC_STRINGS);
+    g_param_spec_boxed ("threadpool-io",
+                        "Threadpool I/O object",
+                        "The threadpool I/O object used to perform async I / O with completion ports",
+                        WING_TYPE_THREAD_POOL_IO,
+                        G_PARAM_READWRITE |
+                        G_PARAM_CONSTRUCT_ONLY |
+                        G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (gobject_class, LAST_PROP, props);
 }
@@ -437,15 +424,12 @@ wing_iocp_output_stream_init (WingIocpOutputStream *wing_stream)
  * Returns: a new #GOutputStream
 **/
 GOutputStream *
-wing_iocp_output_stream_new (void     *handle,
-                             gboolean  close_handle,
-                             PTP_IO    threadpool_io)
+wing_iocp_output_stream_new (gboolean          close_handle,
+                             WingThreadPoolIo *threadpool_io)
 {
-    g_return_val_if_fail (handle != NULL, NULL);
     g_return_val_if_fail (threadpool_io != NULL, NULL);
 
   return g_object_new (WING_TYPE_IOCP_OUTPUT_STREAM,
-                       "handle", handle,
                        "close-handle", close_handle,
                        "threadpool-io", threadpool_io,
                        NULL);
@@ -515,5 +499,5 @@ wing_iocp_output_stream_get_handle (WingIocpOutputStream *stream)
 
   priv = wing_iocp_output_stream_get_instance_private (stream);
 
-  return priv->handle;
+  return wing_thread_pool_get_handle (priv->thread_pool_io);
 }

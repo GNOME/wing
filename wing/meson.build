@@ -12,6 +12,7 @@ headers = [
   'wingservice.h',
   'wingservicemanager.h',
   'wingsource.h',
+  'wingthreadpoolio.h',
   'wingutils.h',
 ]
 
@@ -30,6 +31,7 @@ sources = [
   'wingservice-private.h',
   'wingservicemanager.c',
   'wingsource.c',
+  'wingthreadpoolio.c',
   'wingutils.c',
 ]
 

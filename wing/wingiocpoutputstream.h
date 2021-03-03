@@ -26,7 +26,7 @@
 
 #include <gio/gio.h>
 #include <wing/wingversionmacros.h>
-#include <windows.h>
+#include <wing/wingthreadpoolio.h>
 
 G_BEGIN_DECLS
 
@@ -48,9 +48,8 @@ struct _WingIocpOutputStreamClass
 };
 
 WING_AVAILABLE_IN_ALL
-GOutputStream  *wing_iocp_output_stream_new              (void                 *handle,
-                                                          gboolean              close_handle,
-                                                          PTP_IO                threadpool_io);
+GOutputStream  *wing_iocp_output_stream_new              (gboolean              close_handle,
+                                                          WingThreadPoolIo     *thread_pool_io);
 
 WING_AVAILABLE_IN_ALL
 void            wing_iocp_output_stream_set_close_handle (WingIocpOutputStream *stream,

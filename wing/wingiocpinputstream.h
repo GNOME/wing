@@ -26,7 +26,7 @@
 
 #include <gio/gio.h>
 #include <wing/wingversionmacros.h>
-#include <windows.h>
+#include <wing/wingthreadpoolio.h>
 
 G_BEGIN_DECLS
 
@@ -52,9 +52,8 @@ WING_AVAILABLE_IN_ALL
 GType          wing_iocp_input_stream_get_type         (void) G_GNUC_CONST;
 
 WING_AVAILABLE_IN_ALL
-GInputStream * wing_iocp_input_stream_new              (void                *handle,
-                                                        gboolean             close_handle,
-                                                        PTP_IO               threadpool_io);
+GInputStream * wing_iocp_input_stream_new              (gboolean             close_handle,
+                                                        WingThreadPoolIo    *thread_pool_io);
 WING_AVAILABLE_IN_ALL
 void           wing_iocp_input_stream_set_close_handle (WingIocpInputStream *stream,
                                                         gboolean             close_handle);
