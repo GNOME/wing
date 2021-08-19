@@ -208,7 +208,6 @@ wing_iocp_input_stream_read_async (GInputStream        *stream,
   WingOverlappedData *overlapped;
   WingIocpInputStream *wing_stream;
   WingIocpInputStreamPrivate *priv;
-  int errsv;
   HANDLE handle;
 
   wing_stream = WING_IOCP_INPUT_STREAM (stream);
@@ -245,25 +244,29 @@ wing_iocp_input_stream_read_async (GInputStream        *stream,
 
   wing_thread_pool_io_start (priv->thread_pool_io);
 
-  ReadFile (handle, buffer, (DWORD) count, NULL, (OVERLAPPED *) overlapped);
-  errsv = GetLastError ();
-  if (errsv != NO_ERROR && errsv != ERROR_IO_PENDING)
+  if (!ReadFile (handle, buffer, (DWORD)count, NULL, (OVERLAPPED *)overlapped))
     {
-      gchar *emsg = g_win32_error_message (errsv);
+      int errsv;
 
-      g_task_return_new_error (task, G_IO_ERROR,
-                               g_io_error_from_win32_error (errsv),
-                               "Error reading from handle: %s",
-                               emsg);
-      g_free (emsg);
+      errsv = GetLastError ();
+      if (errsv != NO_ERROR && errsv != ERROR_IO_PENDING)
+        {
+          gchar *emsg = g_win32_error_message (errsv);
 
-      wing_thread_pool_io_cancel (priv->thread_pool_io);
+          g_task_return_new_error (task, G_IO_ERROR,
+                                   g_io_error_from_win32_error (errsv),
+                                   "Error reading from handle: %s",
+                                   emsg);
+          g_free (emsg);
 
-      if (g_task_get_cancellable (task) != NULL)
-        g_cancellable_disconnect (g_task_get_cancellable (task),
-                                  overlapped->cancellable_id);
-      g_object_unref (task);
-      g_slice_free (WingOverlappedData, overlapped);
+          wing_thread_pool_io_cancel (priv->thread_pool_io);
+
+          if (g_task_get_cancellable (task) != NULL)
+            g_cancellable_disconnect (g_task_get_cancellable (task),
+                                      overlapped->cancellable_id);
+          g_object_unref (task);
+          g_slice_free (WingOverlappedData, overlapped);
+        }
     }
 }
 
