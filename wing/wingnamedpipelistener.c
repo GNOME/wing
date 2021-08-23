@@ -434,7 +434,7 @@ connect_ready (HANDLE   handle,
 
   g_object_unref (task);
 
-  return FALSE;
+  return G_SOURCE_REMOVE;
 }
 
 static GList *
@@ -518,7 +518,7 @@ accept_callback (HANDLE   handle,
   data->pipe_data = pipe_data;
   g_main_loop_quit (data->loop);
 
-  return TRUE;
+  return G_SOURCE_REMOVE;
 }
 
 /* Check if any of the named pipes is already connected
