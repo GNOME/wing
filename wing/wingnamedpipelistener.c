@@ -633,10 +633,7 @@ wing_named_pipe_listener_accept (WingNamedPipeListener  *listener,
 
       /* Put another pipe to listen so more clients can already connect */
       if (!create_pipe_from_pipe_data (pipe_data, FALSE, error))
-        {
-          g_object_unref (connection);
-          connection = NULL;
-        }
+        g_clear_object (&connection);
     }
 
   return connection;
