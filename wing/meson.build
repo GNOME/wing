@@ -66,7 +66,7 @@ wing = shared_library(
   install: true,
   dependencies: platform_deps,
   c_args: extra_args + common_cflags + [ '-DG_LOG_DOMAIN="Wing"' ],
-          link_args: wing_link_args
+  link_args: wing_link_args
 )
 
 # Generate pc file
