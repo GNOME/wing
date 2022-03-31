@@ -110,7 +110,7 @@ free_idle_event_data (gpointer user_data)
 {
   IdleEventData *data = (IdleEventData *)user_data;
 
-  g_free(data->event_data);
+  g_free (data->event_data);
   g_slice_free (IdleEventData, data);
 }
 
@@ -128,7 +128,7 @@ wing_service_finalize (GObject *object)
   g_free (priv->descriptionw);
 
   if (wing_service_get_default() == service)
-    wing_service_set_default(NULL);
+    wing_service_set_default (NULL);
 
   g_mutex_clear (&priv->start_mutex);
   g_cond_clear (&priv->start_cond);
@@ -600,8 +600,8 @@ control_handler (DWORD  control,
       g_cond_wait (&priv->control_cond, &priv->control_mutex);
       break;
     case SERVICE_CONTROL_SESSIONCHANGE:
-      data->event_data = g_new(WTSSESSION_NOTIFICATION, 1);
-      memcpy(data->event_data, event_data, sizeof(WTSSESSION_NOTIFICATION));
+      data->event_data = g_new (WTSSESSION_NOTIFICATION, 1);
+      memcpy (data->event_data, event_data, sizeof (WTSSESSION_NOTIFICATION));
       g_idle_add_full (G_PRIORITY_DEFAULT,
                        on_control_handler_idle,
                        data, free_idle_event_data);
@@ -617,8 +617,8 @@ control_handler (DWORD  control,
         case DBT_DEVICEREMOVEPENDING:
         case DBT_DEVICETYPESPECIFIC:
         case DBT_USERDEFINED:
-          data->event_data = g_malloc(((DEV_BROADCAST_HDR *)event_data)->dbch_size);
-          memcpy(data->event_data, event_data, ((DEV_BROADCAST_HDR *)event_data)->dbch_size);
+          data->event_data = g_malloc (((DEV_BROADCAST_HDR *)event_data)->dbch_size);
+          memcpy (data->event_data, event_data, ((DEV_BROADCAST_HDR *)event_data)->dbch_size);
           break;
         }
 
