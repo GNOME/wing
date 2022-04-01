@@ -1,6 +1,6 @@
 project(
   'wing', 'c',
-  version: '0.3.9',
+  version: '0.3.10',
   default_options: [
     'buildtype=debugoptimized',
     'warning_level=2'
