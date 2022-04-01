@@ -762,9 +762,19 @@ wing_service_register (WingService  *service,
 void
 wing_service_notify_stopped (WingService *service)
 {
+  WingServicePrivate *priv;
+
   g_return_if_fail (WING_IS_SERVICE (service));
 
   set_service_status (service, SERVICE_STOPPED);
+
+  priv = wing_service_get_instance_private (service);
+
+  if (priv->thread != NULL)
+    {
+      g_thread_join (priv->thread);
+      priv->thread = NULL;
+    }
 }
 
 static gint
