@@ -502,20 +502,28 @@ on_control_handler_idle (gpointer user_data)
     {
     case WING_SERVICE_STARTUP:
       g_signal_emit (G_OBJECT (service), signals[START], 0);
+      g_mutex_lock (&priv->control_mutex);
       g_cond_signal (&priv->control_cond);
+      g_mutex_unlock (&priv->control_mutex);
       break;
     case SERVICE_CONTROL_STOP:
     case SERVICE_CONTROL_SHUTDOWN:
       g_signal_emit (G_OBJECT (service), signals[STOP], 0);
+      g_mutex_lock (&priv->control_mutex);
       g_cond_signal (&priv->control_cond);
+      g_mutex_unlock (&priv->control_mutex);
       break;
     case SERVICE_CONTROL_PAUSE:
       g_signal_emit (G_OBJECT (service), signals[PAUSE], 0);
+      g_mutex_lock (&priv->control_mutex);
       g_cond_signal (&priv->control_cond);
+      g_mutex_unlock (&priv->control_mutex);
       break;
     case SERVICE_CONTROL_CONTINUE:
       g_signal_emit (G_OBJECT (service), signals[RESUME], 0);
+      g_mutex_lock (&priv->control_mutex);
       g_cond_signal (&priv->control_cond);
+      g_mutex_unlock (&priv->control_mutex);
       break;
     case SERVICE_CONTROL_SESSIONCHANGE:
       g_signal_emit (G_OBJECT (service), signals[SESSION_CHANGE], 0, data->event_type, data->event_data);
