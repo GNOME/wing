@@ -103,7 +103,7 @@ get_time_from_filetime (const FILETIME *ft)
 {
   gint64 t1 = (gint64)ft->dwHighDateTime << 32 | ft->dwLowDateTime;
 
-  return t1 / 10 - 11644473600000000; /* Jan 1, 1601 */
+  return t1 / 10;
 }
 
 gboolean
