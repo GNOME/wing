@@ -52,13 +52,10 @@ WING_AVAILABLE_IN_ALL
 GType                     wing_named_pipe_listener_get_type       (void) G_GNUC_CONST;
 
 WING_AVAILABLE_IN_ALL
-WingNamedPipeListener    *wing_named_pipe_listener_new            (void);
-
-WING_AVAILABLE_IN_ALL
-gboolean                  wing_named_pipe_listener_set_named_pipe (WingNamedPipeListener  *listener,
-                                                                   const gchar            *pipe_name,
+WingNamedPipeListener    *wing_named_pipe_listener_new            (const gchar            *pipe_name,
                                                                    const gchar            *security_descriptor,
                                                                    gboolean                protect_first_instance,
+                                                                   GCancellable           *cancellable,
                                                                    GError                **error);
 
 WING_AVAILABLE_IN_ALL
