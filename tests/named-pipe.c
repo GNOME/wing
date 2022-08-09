@@ -46,6 +46,16 @@ test_add_named_pipe (gconstpointer user_data)
 
   g_object_unref (listener);
 
+  listener = wing_named_pipe_listener_new ("\\\\.\\pipe\\gtest-good-named-pipe-name",
+                                           "D:(A;;GA;;;BA)(A;;GA;;;SY)(A;;GA;;;IU)",
+                                           FALSE,
+                                           NULL,
+                                           &error);
+  g_assert (listener != NULL);
+  g_assert_no_error (error);
+
+  g_object_unref (listener);
+
   listener = wing_named_pipe_listener_new ("\\\\.\\gtest-bad-named-pipe-name",
                                            NULL,
                                            FALSE,

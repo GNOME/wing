@@ -33,10 +33,10 @@ typedef struct
   gboolean protect_first_instance;
 
   gunichar2 *pipe_namew;
-  gunichar2 *security_descriptorw;
   HANDLE handle;
   OVERLAPPED overlapped;
   gboolean already_connected;
+  SECURITY_ATTRIBUTES *security_attributes;
 
   gboolean use_iocp;
 } WingNamedPipeListenerPrivate;
@@ -143,9 +143,16 @@ wing_named_pipe_listener_finalize (GObject *object)
   g_free (priv->pipe_name);
   g_free (priv->pipe_namew);
   g_free (priv->security_descriptor);
-  g_free (priv->security_descriptorw);
   CloseHandle (priv->handle);
   CloseHandle (priv->overlapped.hEvent);
+
+  if (priv->security_attributes != NULL)
+    {
+      if (priv->security_attributes->lpSecurityDescriptor != NULL)
+        LocalFree (priv->security_attributes->lpSecurityDescriptor);
+
+      g_free (priv->security_attributes);
+    }
 
   G_OBJECT_CLASS (wing_named_pipe_listener_parent_class)->finalize (object);
 }
@@ -257,31 +264,6 @@ create_pipe_from_pipe_data (WingNamedPipeListenerPrivate  *priv,
                             gboolean                       protect_first_instance,
                             GError                       **error)
 {
-  SECURITY_ATTRIBUTES sa = { 0, };
-
-  if (priv->security_descriptorw != NULL)
-    {
-      sa.nLength = sizeof (sa);
-
-      if (!ConvertStringSecurityDescriptorToSecurityDescriptorW (priv->security_descriptorw,
-                                                                 SDDL_REVISION_1,
-                                                                 &sa.lpSecurityDescriptor,
-                                                                 NULL))
-        {
-          int errsv = GetLastError ();
-          gchar *emsg = g_win32_error_message (errsv);
-
-          g_set_error (error,
-                       G_IO_ERROR,
-                       g_io_error_from_win32_error (errsv),
-                       "Could not convert the security descriptor '%s': %s",
-                       priv->security_descriptor, emsg);
-          g_free (emsg);
-
-          return FALSE;
-        }
-    }
-
   /* Set event as signaled */
   SetEvent(priv->overlapped.hEvent);
 
@@ -300,11 +282,7 @@ create_pipe_from_pipe_data (WingNamedPipeListenerPrivate  *priv,
                                    DEFAULT_PIPE_BUF_SIZE,
                                    DEFAULT_PIPE_BUF_SIZE,
                                    0,
-                                   priv->security_descriptorw != NULL ? &sa : NULL);
-
-  if (sa.lpSecurityDescriptor != NULL)
-    LocalFree (sa.lpSecurityDescriptor);
-
+                                   priv->security_attributes);
   if (priv->handle == INVALID_HANDLE_VALUE)
     {
       int errsv = GetLastError ();
@@ -574,12 +552,46 @@ wing_named_pipe_listener_initable_init (GInitable     *initable,
   priv = wing_named_pipe_listener_get_instance_private (listener);
 
   priv->pipe_namew = g_utf8_to_utf16 (priv->pipe_name, -1, NULL, NULL, NULL);
-  priv->security_descriptorw = priv->security_descriptor != NULL ? g_utf8_to_utf16 (priv->security_descriptor, -1, NULL, NULL, NULL) : NULL;
   priv->handle = INVALID_HANDLE_VALUE;
   priv->overlapped.hEvent = CreateEvent (NULL, /* default security attribute */
                                          TRUE, /* manual-reset event */
                                          TRUE, /* initial state = signaled */
                                          NULL); /* unnamed event object */
+
+  if (priv->security_descriptor != NULL)
+    {
+      gunichar2 *security_descriptorw;
+      gboolean success;
+      SECURITY_ATTRIBUTES *sa;
+
+      sa = g_malloc0 (sizeof (SECURITY_ATTRIBUTES));
+      sa->nLength = sizeof (SECURITY_ATTRIBUTES);
+
+      security_descriptorw = g_utf8_to_utf16 (priv->security_descriptor, -1, NULL, NULL, NULL);
+      success = ConvertStringSecurityDescriptorToSecurityDescriptorW (security_descriptorw,
+                                                                      SDDL_REVISION_1,
+                                                                      &sa->lpSecurityDescriptor,
+                                                                      NULL);
+      g_free (security_descriptorw);
+
+      if (!success)
+        {
+          int errsv = GetLastError ();
+          gchar *emsg = g_win32_error_message (errsv);
+
+          g_set_error (error,
+                      G_IO_ERROR,
+                      g_io_error_from_win32_error (errsv),
+                      "Could not convert the security descriptor '%s': %s",
+                      priv->security_descriptor, emsg);
+          g_free (emsg);
+          g_free (sa);
+
+          return FALSE;
+        }
+
+      priv->security_attributes = sa;
+    }
 
   return create_pipe_from_pipe_data (priv, priv->protect_first_instance, error);
 }
