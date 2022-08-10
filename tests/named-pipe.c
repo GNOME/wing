@@ -283,6 +283,58 @@ test_connect_before_accept (gconstpointer user_data)
 }
 
 static void
+test_accept_fail_sync (gconstpointer user_data)
+{
+  WingNamedPipeListener *listener;
+  WingNamedPipeClient *client;
+  WingNamedPipeConnection *connection;
+  GError *error = NULL;
+  TestData *test_data = (TestData *) user_data;
+
+  listener = wing_named_pipe_listener_new ("\\\\.\\pipe\\gtest-named-pipe-name",
+                                           NULL,
+                                           FALSE,
+                                           NULL,
+                                           &error);
+  g_assert (listener != NULL);
+  g_assert_no_error (error);
+
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
+
+  client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
+  connection = wing_named_pipe_client_connect (client,
+                                               "\\\\.\\pipe\\gtest-named-pipe-name",
+                                               WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
+                                               NULL,
+                                               &error);
+
+  g_assert_no_error (error);
+
+  /* This will cause the following accept to fail because the pipe was closed */
+  g_object_unref (connection);
+  wing_named_pipe_listener_accept (listener, NULL, &error);
+  g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT);
+
+  g_clear_error (&error);
+
+  connection = wing_named_pipe_client_connect (client,
+                                               "\\\\.\\pipe\\gtest-named-pipe-name",
+                                               WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
+                                               NULL,
+                                               &error);
+  g_assert_no_error (error);
+
+  wing_named_pipe_listener_accept (listener, NULL, &error);
+  g_assert_no_error (error);
+
+  g_object_unref (connection);
+  g_object_unref (client);
+  g_object_unref (listener);
+}
+
+static void
 test_connect_sync (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
@@ -1035,6 +1087,7 @@ main (int   argc,
   g_test_add_data_func ("/named-pipes/connect-sync", &test_data, test_connect_sync);
   g_test_add_data_func ("/named-pipes/connect-sync-fails", &test_data, test_connect_sync_fails);
   g_test_add_data_func ("/named-pipes/accept-cancel", &test_data, test_accept_cancel);
+  g_test_add_data_func ("/named-pipes/accept-fail-sync", &test_data, test_accept_fail_sync);
   g_test_add_data_func ("/named-pipes/connect-accept-cancel", &test_data, test_connect_accept_cancel);
   g_test_add_data_func ("/named-pipes/multi-client-basic", &test_data, test_multi_client_basic);
   g_test_add_data_func ("/named-pipes/client-default-timeout", &test_data, test_client_default_timeout);
@@ -1054,6 +1107,7 @@ main (int   argc,
   g_test_add_data_func ("/named-pipes-iocp/connect-sync", &test_data_iocp, test_connect_sync);
   g_test_add_data_func ("/named-pipes-iocp/connect-sync-fails", &test_data_iocp, test_connect_sync_fails);
   g_test_add_data_func ("/named-pipes-iocp/accept-cancel", &test_data_iocp, test_accept_cancel);
+  g_test_add_data_func ("/named-pipes-iocp/accept-fail-sync", &test_data_iocp, test_accept_fail_sync);
   g_test_add_data_func ("/named-pipes-iocp/connect-accept-cancel", &test_data_iocp, test_connect_accept_cancel);
   g_test_add_data_func ("/named-pipes-iocp/multi-client-basic", &test_data_iocp, test_multi_client_basic);
   g_test_add_data_func ("/named-pipes-iocp/client-default-timeout", &test_data_iocp, test_client_default_timeout);
