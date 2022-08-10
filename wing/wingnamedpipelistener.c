@@ -35,7 +35,6 @@ typedef struct
   gunichar2 *pipe_namew;
   HANDLE handle;
   OVERLAPPED overlapped;
-  gboolean already_connected;
   SECURITY_ATTRIBUTES *security_attributes;
 
   gboolean use_iocp;
@@ -260,15 +259,11 @@ wing_named_pipe_listener_new (const gchar            *pipe_name,
 }
 
 static gboolean
-create_pipe_from_pipe_data (WingNamedPipeListenerPrivate  *priv,
-                            gboolean                       protect_first_instance,
-                            GError                       **error)
+create_pipe (WingNamedPipeListenerPrivate  *priv,
+             gboolean                       protect_first_instance,
+             GError                       **error)
 {
-  /* Set event as signaled */
-  SetEvent(priv->overlapped.hEvent);
-
-  /* clear the flag if this was already connected */
-  priv->already_connected = FALSE;
+  g_assert (priv->handle == INVALID_HANDLE_VALUE);
 
   priv->handle = CreateNamedPipeW (priv->pipe_namew,
                                    PIPE_ACCESS_DUPLEX |
@@ -298,31 +293,6 @@ create_pipe_from_pipe_data (WingNamedPipeListenerPrivate  *priv,
       return FALSE;
     }
 
-  if (!ConnectNamedPipe (priv->handle, &priv->overlapped))
-    {
-      switch (GetLastError ())
-      {
-      case ERROR_IO_PENDING:
-        break;
-      case ERROR_PIPE_CONNECTED:
-        priv->already_connected = TRUE;
-        break;
-      default:
-        {
-          int errsv = GetLastError ();
-          gchar *emsg = g_win32_error_message (errsv);
-
-          g_set_error (error,
-                       G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
-                       "Failed to connect named pipe '%s': %s",
-                       priv->pipe_name, emsg);
-          g_free (emsg);
-
-          return FALSE;
-        }
-      }
-    }
-
   return TRUE;
 }
 
@@ -333,8 +303,12 @@ connect_ready (HANDLE   handle,
   GTask *task = user_data;
   WingNamedPipeListener *listener = g_task_get_source_object (task);
   WingNamedPipeListenerPrivate *priv;
+  WingNamedPipeConnection *connection = NULL;
   gulong cbret;
   guint i;
+  GError *error = NULL;
+  GError *local_error = NULL;
+  HANDLE old_handle = INVALID_HANDLE_VALUE;
 
   priv = wing_named_pipe_listener_get_instance_private (listener);
 
@@ -343,33 +317,46 @@ connect_ready (HANDLE   handle,
       int errsv = GetLastError ();
       gchar *emsg = g_win32_error_message (errsv);
 
-      g_task_return_new_error (task,
-                               G_IO_ERROR,
-                               G_IO_ERROR_INVALID_ARGUMENT,
-                               "There was an error querying the named pipe: %s",
-                               emsg);
+      g_set_error (&error,
+                   G_IO_ERROR,
+                   G_IO_ERROR_INVALID_ARGUMENT,
+                   "There was an error querying the named pipe: %s",
+                   emsg);
       g_free (emsg);
+
+      old_handle = priv->handle;
     }
   else
     {
-      WingNamedPipeConnection *connection;
-      GError *error = NULL;
-
       connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
                                  "pipe-name", priv->pipe_name,
                                  "handle", priv->handle,
                                  "close-handle", TRUE,
                                  "use-iocp", priv->use_iocp,
                                  NULL);
+    }
 
-      /* Put another pipe to listen so more clients can already connect */
-      if (!create_pipe_from_pipe_data (priv, FALSE, &error))
-        {
-          g_object_unref (connection);
-          g_task_return_error (task, error);
-        }
-      else
-        g_task_return_pointer (task, connection, g_object_unref);
+  priv->handle = INVALID_HANDLE_VALUE;
+
+  /* Create another pipe so more clients can already connect */
+  if (!create_pipe (priv, FALSE, &local_error))
+    {
+      g_warning ("%s", local_error->message);
+      g_error_free (local_error);
+    }
+
+  if (connection != NULL)
+    {
+      g_task_return_pointer (task, connection, g_object_unref);
+    }
+  else
+    {
+      g_task_return_error (task, error);
+
+      /* We close the old pipe after having created the new one to avoid client connections
+       * failures because the pipe does not exists. 
+       */
+      CloseHandle (old_handle);
     }
 
   g_object_unref (task);
@@ -409,16 +396,52 @@ wing_named_pipe_listener_accept (WingNamedPipeListener  *listener,
 {
   WingNamedPipeListenerPrivate *priv;
   WingNamedPipeConnection *connection = NULL;
-  gboolean success;
+  GError *local_error = NULL;
+  gboolean success = TRUE;
+  HANDLE old_handle;
 
   g_return_val_if_fail (WING_IS_NAMED_PIPE_LISTENER (listener), NULL);
 
   priv = wing_named_pipe_listener_get_instance_private (listener);
+  
+  /* This should not happen. If it happens, it means the creation of the pipe failed in the previous accept */
+  if  (priv->handle == INVALID_HANDLE_VALUE &&
+       !create_pipe (priv, FALSE, error))
+    {
+      return NULL;
+    }
 
-  success = priv->already_connected;
+  if (!ConnectNamedPipe (priv->handle, &priv->overlapped))
+    {
+      switch (GetLastError ())
+        {
+        case ERROR_PIPE_CONNECTED:
+          break;
+        case ERROR_IO_PENDING:
+          {
+            DWORD cbret;
 
-  if (!success)
-    success = WaitForSingleObject (priv->overlapped.hEvent, INFINITE) == WAIT_OBJECT_0;
+            if (GetOverlappedResult (priv->handle, &priv->overlapped, &cbret, TRUE))
+              break;
+
+            /* FALLTHROUGH */
+          }
+        default:
+          {
+            int errsv = GetLastError ();
+            gchar *emsg = g_win32_error_message (errsv);
+
+            g_set_error (error,
+                         G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+                         "Failed to connect named pipe '%s': %s",
+                         priv->pipe_name, emsg);
+            g_free (emsg);
+
+            old_handle = priv->handle;
+            success = FALSE;
+          }
+        }
+    }
 
   if (success)
     {
@@ -428,10 +451,23 @@ wing_named_pipe_listener_accept (WingNamedPipeListener  *listener,
                                  "close-handle", TRUE,
                                  "use-iocp", priv->use_iocp,
                                  NULL);
+    }
 
-      /* Put another pipe to listen so more clients can already connect */
-      if (!create_pipe_from_pipe_data (priv, FALSE, error))
-        g_clear_object (&connection);
+  priv->handle = INVALID_HANDLE_VALUE;
+
+  /* Create another pipe so more clients can already connect */
+  if (!create_pipe (priv, FALSE, &local_error))
+    {
+      g_warning ("%s", local_error->message);
+      g_error_free (local_error);
+    }
+
+  if (!success)
+    {
+      /* We close the old pipe after having created the new one to avoid client connections
+       * failures because the pipe does not exists. 
+       */
+      CloseHandle (old_handle);
     }
 
   return connection;
@@ -456,48 +492,101 @@ wing_named_pipe_listener_accept_async (WingNamedPipeListener *listener,
                                        GAsyncReadyCallback    callback,
                                        gpointer               user_data)
 {
-  GTask *task;
-  GSource *source;
   WingNamedPipeListenerPrivate *priv;
+  WingNamedPipeConnection *connection;
+  GError *local_error = NULL;
+  gboolean success = TRUE;
+  HANDLE old_handle;
+  GTask *task;
+  GError *error = NULL;
+
+  g_return_if_fail (WING_IS_NAMED_PIPE_LISTENER (listener));
 
   task = g_task_new (listener, cancellable, callback, user_data);
 
   priv = wing_named_pipe_listener_get_instance_private (listener);
-
-  if (priv->already_connected)
+  
+  /* This should not happen. If it happens, it means the creation of the pipe failed in the previous accept */
+  if  (priv->handle == INVALID_HANDLE_VALUE &&
+       !create_pipe (priv, FALSE, &error))
     {
-      WingNamedPipeConnection *connection;
-      GError *error = NULL;
-
-      connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
-                                 "pipe-name", priv->pipe_name,
-                                 "handle", priv->handle,
-                                 "close-handle", TRUE,
-                                 "use-iocp", priv->use_iocp,
-                                 NULL);
-
-      if (!create_pipe_from_pipe_data (priv, FALSE, &error))
-        {
-          g_object_unref (connection);
-          g_task_return_error (task, error);
-        }
-      else
-        g_task_return_pointer (task, connection, g_object_unref);
-
+      g_task_return_error (task, error);
       g_object_unref (task);
-
       return;
     }
 
-  source = wing_create_source (priv->overlapped.hEvent,
-                               G_IO_IN,
-                               cancellable);
-  g_source_set_callback (source,
-                         (GSourceFunc) connect_ready,
-                         task, NULL);
-  g_source_attach (source, g_main_context_get_thread_default ());
+  if (!ConnectNamedPipe (priv->handle, &priv->overlapped))
+    {
+      switch (GetLastError ())
+        {
+        case ERROR_PIPE_CONNECTED:
+          break;
+        case ERROR_IO_PENDING:
+          {
+            GSource *source;
 
-  g_task_set_task_data (task, source, (GDestroyNotify) free_source);
+            source = wing_create_source (priv->overlapped.hEvent,
+                                        G_IO_IN,
+                                        cancellable);
+            g_source_set_callback (source,
+                                  (GSourceFunc) connect_ready,
+                                  task, NULL);
+            g_source_attach (source, g_main_context_get_thread_default ());
+
+            g_task_set_task_data (task, source, (GDestroyNotify) free_source);
+            return;
+          }
+        default:
+          {
+            int errsv = GetLastError ();
+            gchar *emsg = g_win32_error_message (errsv);
+
+            g_set_error (&error,
+                         G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+                         "Failed to connect named pipe '%s': %s",
+                         priv->pipe_name, emsg);
+            g_free (emsg);
+            
+            old_handle = priv->handle;
+            success = FALSE;
+          }
+        }
+    }
+
+  if (success)
+    {
+      connection = g_object_new (WING_TYPE_NAMED_PIPE_CONNECTION,
+                                "pipe-name", priv->pipe_name,
+                                "handle", priv->handle,
+                                "close-handle", TRUE,
+                                "use-iocp", priv->use_iocp,
+                                NULL);
+    }
+
+  priv->handle = INVALID_HANDLE_VALUE;
+
+  /* Create another pipe so more clients can already connect */
+  if (!create_pipe (priv, FALSE, &local_error))
+    {
+      g_warning ("%s", local_error->message);
+      g_error_free (local_error);
+    }
+
+  if (success)
+    {
+      g_task_return_pointer (task, connection, g_object_unref);
+    }
+  else
+    {
+      g_task_return_error (task, error);
+
+      /* We close the old pipe after having created the new one to avoid client connections
+       * failures because the pipe does not exists. 
+       */
+      CloseHandle (old_handle);
+    }
+
+  g_object_unref (task);
 }
 
 /**
@@ -545,6 +634,7 @@ wing_named_pipe_listener_initable_init (GInitable     *initable,
 {
   WingNamedPipeListener *listener;
   WingNamedPipeListenerPrivate *priv;
+  gboolean success;
 
   g_return_val_if_fail (WING_IS_NAMED_PIPE_LISTENER (initable), FALSE);
 
@@ -555,7 +645,7 @@ wing_named_pipe_listener_initable_init (GInitable     *initable,
   priv->handle = INVALID_HANDLE_VALUE;
   priv->overlapped.hEvent = CreateEvent (NULL, /* default security attribute */
                                          TRUE, /* manual-reset event */
-                                         TRUE, /* initial state = signaled */
+                                         FALSE, /* initial state = non-signaled */
                                          NULL); /* unnamed event object */
 
   if (priv->security_descriptor != NULL)
@@ -593,7 +683,7 @@ wing_named_pipe_listener_initable_init (GInitable     *initable,
       priv->security_attributes = sa;
     }
 
-  return create_pipe_from_pipe_data (priv, priv->protect_first_instance, error);
+  return create_pipe (priv, priv->protect_first_instance, error);
 }
 
 static void
