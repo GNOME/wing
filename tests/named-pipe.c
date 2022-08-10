@@ -198,6 +198,48 @@ test_connect_basic (gconstpointer user_data)
 }
 
 static void
+test_connect_before_accept_sync (gconstpointer user_data)
+{
+  WingNamedPipeListener *listener;
+  WingNamedPipeClient *client;
+  gboolean success_accepted = FALSE;
+  gboolean success_connected = FALSE;
+  GError *client_error = NULL;
+  GError *server_error = NULL;
+  TestData *test_data = (TestData *) user_data;
+
+  listener = wing_named_pipe_listener_new ("\\\\.\\pipe\\gtest-named-pipe-name",
+                                           NULL,
+                                           FALSE,
+                                           NULL,
+                                           &server_error);
+  g_assert (listener != NULL);
+  g_assert_no_error (server_error);
+
+  wing_named_pipe_listener_set_use_iocp (listener, test_data->use_iocp);
+
+  client = wing_named_pipe_client_new ();
+  wing_named_pipe_client_set_use_iocp (client, test_data->use_iocp);
+
+  wing_named_pipe_client_connect (client,
+                                  "\\\\.\\pipe\\gtest-named-pipe-name",
+                                   WING_NAMED_PIPE_CLIENT_GENERIC_READ | WING_NAMED_PIPE_CLIENT_GENERIC_WRITE,
+                                   NULL,
+                                   &client_error);
+
+  g_assert_no_error (client_error);
+
+  wing_named_pipe_listener_accept (listener,
+                                   NULL,
+                                   &server_error);
+
+  g_assert_no_error (server_error);
+
+  g_object_unref (client);
+  g_object_unref (listener);
+}
+
+static void
 test_connect_before_accept (gconstpointer user_data)
 {
   WingNamedPipeListener *listener;
@@ -271,6 +313,7 @@ test_connect_sync (gconstpointer user_data)
   g_assert_no_error (error);
   g_assert_cmpstr ("\\\\.\\pipe\\gtest-connect-sync", ==, wing_named_pipe_connection_get_pipe_name (connection));
 
+  g_object_unref (connection);
   g_object_unref (client);
   g_object_unref (listener);
 }
@@ -988,6 +1031,7 @@ main (int   argc,
   g_test_add_data_func ("/named-pipes/add-named-pipe-multiple-instances-protected", &test_data, test_add_named_pipe_multiple_instances_protected);
   g_test_add_data_func ("/named-pipes/connect-basic", &test_data, test_connect_basic);
   g_test_add_data_func ("/named-pipes/connect-before-accept", &test_data, test_connect_before_accept);
+  g_test_add_data_func ("/named-pipes/connect-before-accept-sync", &test_data, test_connect_before_accept_sync);
   g_test_add_data_func ("/named-pipes/connect-sync", &test_data, test_connect_sync);
   g_test_add_data_func ("/named-pipes/connect-sync-fails", &test_data, test_connect_sync_fails);
   g_test_add_data_func ("/named-pipes/accept-cancel", &test_data, test_accept_cancel);
@@ -1006,6 +1050,7 @@ main (int   argc,
   g_test_add_data_func ("/named-pipes-iocp/add-named-pipe", &test_data_iocp, test_add_named_pipe);
   g_test_add_data_func ("/named-pipes-iocp/connect-basic", &test_data_iocp, test_connect_basic);
   g_test_add_data_func ("/named-pipes-iocp/connect-before-accept", &test_data_iocp, test_connect_before_accept);
+  g_test_add_data_func ("/named-pipes-iocp/connect-before-accept-sync", &test_data_iocp, test_connect_before_accept_sync);
   g_test_add_data_func ("/named-pipes-iocp/connect-sync", &test_data_iocp, test_connect_sync);
   g_test_add_data_func ("/named-pipes-iocp/connect-sync-fails", &test_data_iocp, test_connect_sync_fails);
   g_test_add_data_func ("/named-pipes-iocp/accept-cancel", &test_data_iocp, test_accept_cancel);
