@@ -349,7 +349,7 @@ test_accept_cancel (gconstpointer user_data)
                                          accept_cancelled_cb,
                                          &accept_cancelled);
 
-  g_timeout_add_seconds (5, on_cancel_task, cancellable);
+  g_timeout_add_seconds (3, on_cancel_task, cancellable);
 
   do
     g_main_context_iteration (NULL, TRUE);
@@ -407,7 +407,7 @@ test_connect_accept_cancel (gconstpointer user_data)
                                          accept_cancelled_cb,
                                          &success_accepted);
 
-  g_timeout_add_seconds (5, on_cancel_task, cancellable);
+  g_timeout_add_seconds (3, on_cancel_task, cancellable);
 
   do
     g_main_context_iteration (NULL, TRUE);
