@@ -39,6 +39,7 @@
 typedef struct {
   HANDLE handle;
   gboolean close_handle;
+  DWORD current_offset;
 
   OVERLAPPED overlap;
 } WingInputStreamPrivate;
@@ -148,9 +149,18 @@ wing_input_stream_read (GInputStream  *stream,
   overlap.hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
   g_return_val_if_fail (overlap.hEvent != NULL, -1);
 
+  overlap.Offset = priv->current_offset;
+  
   res = ReadFile (priv->handle, buffer, nbytes, &nread, &overlap);
   if (res)
-    retval = nread;
+    {
+      retval = nread;
+
+      if (GetFileType (priv->handle) == FILE_TYPE_DISK)
+        {
+          priv->current_offset += nread;
+        }
+    }
   else
     {
       int errsv = GetLastError ();
@@ -160,6 +170,12 @@ wing_input_stream_read (GInputStream  *stream,
                                     &overlap, &nread, cancellable))
         {
           retval = nread;
+
+          if (GetFileType (priv->handle) == FILE_TYPE_DISK)
+            {
+              priv->current_offset += nread;
+            }
+            
           goto end;
         }
 
@@ -273,6 +289,11 @@ read_async_ready (HANDLE   handle,
     }
 
   ResetEvent (priv->overlap.hEvent);
+  
+  if (GetFileType (priv->handle) == FILE_TYPE_DISK)
+    {
+      priv->current_offset += nread;
+    }
 
   g_task_return_int (task, nread);
   g_object_unref (task);
@@ -308,6 +329,7 @@ wing_input_stream_read_async (GInputStream        *stream,
     nbytes = count;
 
   ResetEvent (priv->overlap.hEvent);
+  priv->overlap.Offset = priv->current_offset;
 
   res = ReadFile (priv->handle, buffer, nbytes, &nread, &priv->overlap);
   if (res)
@@ -315,6 +337,12 @@ wing_input_stream_read_async (GInputStream        *stream,
       ResetEvent (priv->overlap.hEvent);
       g_task_return_int (task, nread);
       g_object_unref (task);
+
+      if (GetFileType (priv->handle) == FILE_TYPE_DISK)
+        {
+          priv->current_offset += nread;
+        }
+      
       return;
     }
 
@@ -328,6 +356,7 @@ wing_input_stream_read_async (GInputStream        *stream,
       g_task_attach_source (task, handle_source,
                             (GSourceFunc)read_async_ready);
       g_source_unref (handle_source);
+      
       return;
     }
 
