@@ -341,7 +341,7 @@ wing_service_manager_start_service (WingServiceManager  *manager,
       for (i = 0; i < argc; i++)
         argvw[i] = g_utf8_to_utf16 (argv[i], -1, NULL, NULL, NULL);
 
-      if (StartServiceW (service_handle, argc, argvw))
+      if (StartServiceW (service_handle, argc, (LPCWSTR *)argvw))
         result = TRUE;
       else
         {
@@ -354,7 +354,9 @@ wing_service_manager_start_service (WingServiceManager  *manager,
           g_free (emsg);
         }
 
-      g_strfreev ((gchar **)argvw);
+      for (i = 0; i < argc; i++)
+        g_free (argvw[i]);
+      g_free (argvw);
 
       CloseServiceHandle (service_handle);
   }
