@@ -39,7 +39,7 @@
 typedef struct {
   HANDLE handle;
   gboolean close_handle;
-  DWORD current_offset;
+  DWORD64 current_offset;
 
   OVERLAPPED overlap;
 } WingInputStreamPrivate;
@@ -149,7 +149,8 @@ wing_input_stream_read (GInputStream  *stream,
   overlap.hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
   g_return_val_if_fail (overlap.hEvent != NULL, -1);
 
-  overlap.Offset = priv->current_offset;
+  overlap.OffsetHigh = (DWORD)(priv->current_offset >> 32);
+  overlap.Offset = (DWORD)priv->current_offset;
   
   res = ReadFile (priv->handle, buffer, nbytes, &nread, &overlap);
   if (res)
@@ -329,7 +330,8 @@ wing_input_stream_read_async (GInputStream        *stream,
     nbytes = count;
 
   ResetEvent (priv->overlap.hEvent);
-  priv->overlap.Offset = priv->current_offset;
+  priv->overlap.OffsetHigh = (DWORD)(priv->current_offset >> 32);
+  priv->overlap.Offset = (DWORD)priv->current_offset;
 
   res = ReadFile (priv->handle, buffer, nbytes, &nread, &priv->overlap);
   if (res)
