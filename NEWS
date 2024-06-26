@@ -1,3 +1,7 @@
+News in 0.3.22
+--------------
+* Use both offset and offsetHigh to read.
+
 News in 0.3.20
 --------------
 * Fix memory corruption in service manager
