@@ -312,6 +312,13 @@ connect_ready (HANDLE   handle,
 
   priv = wing_named_pipe_listener_get_instance_private (listener);
 
+  if (g_task_return_error_if_cancelled (task))
+    {
+      g_object_unref (task);
+
+      return G_SOURCE_REMOVE;
+    }
+
   if (!GetOverlappedResult (priv->handle, &priv->overlapped, &cbret, FALSE))
     {
       int errsv = GetLastError ();
